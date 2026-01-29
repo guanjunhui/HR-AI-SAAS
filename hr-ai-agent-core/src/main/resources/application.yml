@@ -1,0 +1,152 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: hr-ai-agent-core
+
+  # 数据源配置
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/hr_ai_saas?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: hr_ai_2025  # Docker Compose 默认密码
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      validation-query: SELECT 1
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+
+  # AI 配置 (通义千问)
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:sk-your-api-key}
+      # 聊天模型配置
+      chat:
+        options:
+          model: qwen-plus  # 可选: qwen-turbo, qwen-plus, qwen-max
+          temperature: 0.7
+          top-p: 0.8
+          max-tokens: 2000
+      # 嵌入模型配置
+      embedding:
+        options:
+          model: text-embedding-v2  # 768维向量
+
+  # RabbitMQ 配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    # 消费者配置
+    listener:
+      simple:
+        acknowledge-mode: manual  # 手动确认
+        prefetch: 1  # 预取数量
+        retry:
+          enabled: true
+          max-attempts: 3
+
+  # Redis 配置 (通过 Redisson)
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://localhost:6379"
+          password: null
+          database: 0
+          connectionPoolSize: 50
+          connectionMinimumIdleSize: 10
+          timeout: 3000
+
+  # Jackson 配置
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+
+# MyBatis Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted  # 逻辑删除字段
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:/mapper/**/*.xml
+
+# Qdrant 向量数据库配置
+qdrant:
+  host: localhost
+  port: 6334
+  api-key: ${QDRANT_API_KEY:}  # 可选
+  use-tls: false
+  # 集合配置
+  collections:
+    knowledge:
+      name: knowledge_default
+      vector-size: 768
+      distance: Cosine
+    memory:
+      name: user_memory
+      vector-size: 768
+      distance: Cosine
+
+# Agent 配置
+agent:
+  # 默认配置
+  default:
+    max-iterations: 5  # ReAct 最大迭代次数
+    temperature: 0.7
+    max-tokens: 2000
+  # RAG 配置
+  rag:
+    top-k: 5  # 检索Top K文档
+    score-threshold: 0.6  # 相似度阈值
+    chunk-size: 500  # 文档分块大小
+    chunk-overlap: 50  # 分块重叠
+  # 记忆配置
+  memory:
+    short-term:
+      max-history: 10  # 最多保存10轮对话
+      ttl: 3600  # 1小时过期 (秒)
+    long-term:
+      enabled: true
+      vector-store: true  # 是否向量化存储
+
+# Actuator 健康检查配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.hrai: DEBUG
+    org.springframework.ai: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"

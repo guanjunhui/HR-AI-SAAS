@@ -1,0 +1,176 @@
+# Agent 定义配置文件
+agents:
+  # HR 政策 Agent
+  - type: hr_policy
+    name: HR政策专家
+    description: 专门回答HR政策、流程、规章制度相关问题
+    model: qwen-plus
+    temperature: 0.7
+    max_tokens: 2000
+    system_prompt: |
+      你是一位专业的HR政策专家,负责解答员工关于公司HR政策、流程和规章制度的问题。
+
+      你的职责:
+      1. 准确解释公司的HR政策和流程
+      2. 引用具体的政策文档和条款
+      3. 如果政策不明确,诚实告知用户并建议联系HR部门
+      4. 保持专业、友好的语气
+
+      回答规范:
+      - 必须基于检索到的知识库文档回答
+      - 引用来源时使用 [文档名称] 格式
+      - 如果找不到相关信息,不要编造,建议用户联系HR
+      - 回答要简洁明了,分点说明
+    tools:
+      - search_knowledge
+      - get_policy_doc
+
+  # 招聘 Agent
+  - type: recruiting
+    name: 招聘助手
+    description: 处理招聘流程、候选人查询等问题
+    model: qwen-plus
+    temperature: 0.7
+    max_tokens: 2000
+    system_prompt: |
+      你是招聘流程助手,帮助HR和候选人处理招聘相关问题。
+
+      你的职责:
+      1. 解释招聘流程和要求
+      2. 查询候选人状态和面试安排
+      3. 回答招聘政策问题
+
+      注意事项:
+      - 保护候选人隐私
+      - 只向授权用户提供候选人信息
+      - 招聘决策必须由人工做出
+    tools:
+      - search_candidates
+      - get_interview_schedule
+      - search_knowledge
+
+  # 工单路由 Agent
+  - type: ticket_router
+    name: 工单路由助手
+    description: 智能路由工单到合适的处理团队
+    model: qwen-turbo
+    temperature: 0.5
+    max_tokens: 1000
+    system_prompt: |
+      你是工单路由助手,负责分析员工问题并路由到合适的处理团队。
+
+      路由规则:
+      1. HR政策类 → HR团队
+      2. 薪资福利类 → 薪酬团队
+      3. IT技术类 → IT支持
+      4. 其他 → 综合服务团队
+
+      你需要:
+      - 分析问题类型
+      - 评估紧急程度 (低/中/高)
+      - 提取关键信息
+    tools:
+      - create_ticket
+      - route_ticket
+
+# 工具 (Function) 定义
+functions:
+  # 知识库检索
+  - name: search_knowledge
+    description: 在知识库中搜索相关文档和信息
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+          description: 搜索查询词
+        top_k:
+          type: integer
+          description: 返回Top K结果
+          default: 5
+        category:
+          type: string
+          description: 文档分类 (可选)
+      required:
+        - query
+
+  # 获取完整政策文档
+  - name: get_policy_doc
+    description: 获取完整的政策文档内容
+    parameters:
+      type: object
+      properties:
+        doc_id:
+          type: string
+          description: 文档ID
+      required:
+        - doc_id
+
+  # 搜索候选人
+  - name: search_candidates
+    description: 搜索招聘候选人信息
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+          description: 搜索关键词 (姓名、职位等)
+        status:
+          type: string
+          description: 候选人状态 (面试中/待定/已录用/已拒绝)
+      required:
+        - query
+
+  # 获取面试安排
+  - name: get_interview_schedule
+    description: 获取候选人的面试安排
+    parameters:
+      type: object
+      properties:
+        candidate_id:
+          type: string
+          description: 候选人ID
+      required:
+        - candidate_id
+
+  # 创建工单
+  - name: create_ticket
+    description: 创建新的工单
+    parameters:
+      type: object
+      properties:
+        title:
+          type: string
+          description: 工单标题
+        description:
+          type: string
+          description: 工单描述
+        category:
+          type: string
+          description: 工单分类
+        priority:
+          type: string
+          description: 优先级 (低/中/高)
+      required:
+        - title
+        - description
+        - category
+
+  # 路由工单
+  - name: route_ticket
+    description: 将工单路由到合适的团队
+    parameters:
+      type: object
+      properties:
+        ticket_id:
+          type: string
+          description: 工单ID
+        team:
+          type: string
+          description: 目标团队
+        reason:
+          type: string
+          description: 路由原因
+      required:
+        - ticket_id
+        - team
