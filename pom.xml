@@ -28,21 +28,24 @@
         <!-- Spring 版本 -->
         <spring-boot.version>3.2.2</spring-boot.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
+        <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
 
-        <!-- Spring AI 版本 -->
-        <spring-ai-alibaba.version>1.0.0-M2</spring-ai-alibaba.version>
+        <!-- Spring AI Alibaba 版本 (1.1.0.0-RC2 支持 agent-framework + graph) -->
+        <spring-ai-alibaba.version>1.1.0.0-RC2</spring-ai-alibaba.version>
 
         <!-- 数据库版本 -->
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <mysql-connector.version>8.0.33</mysql-connector.version>
         <druid.version>1.2.20</druid.version>
 
-        <!-- 向量数据库 -->
-        <qdrant-client.version>1.7.0</qdrant-client.version>
+        <!-- 向量数据库 - Milvus -->
+        <milvus-sdk.version>2.5.4</milvus-sdk.version>
 
-        <!-- 缓存与消息队列 -->
+        <!-- 缓存 -->
         <redisson.version>3.25.2</redisson.version>
-        <spring-amqp.version>3.1.2</spring-amqp.version>
+
+        <!-- 消息队列 - Kafka -->
+        <spring-kafka.version>3.1.2</spring-kafka.version>
 
         <!-- 工作流 -->
         <spring-statemachine.version>4.0.0</spring-statemachine.version>
@@ -77,11 +80,56 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- Spring AI Alibaba -->
+            <!-- Spring Cloud Alibaba BOM (Nacos 等) -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring AI Alibaba 核心依赖 (显式版本声明) -->
             <dependency>
                 <groupId>com.alibaba.cloud.ai</groupId>
                 <artifactId>spring-ai-alibaba-starter</artifactId>
                 <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-starter-agent</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-graph-core</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+
+            <!-- MCP Nacos 集成 -->
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-starter-nacos-mcp-server</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+
+            <!-- A2A 协议支持 -->
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-starter-a2a-server</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-starter-a2a-nacos-discovery</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+
+            <!-- Milvus 向量数据库 SDK -->
+            <dependency>
+                <groupId>io.milvus</groupId>
+                <artifactId>milvus-sdk-java</artifactId>
+                <version>${milvus-sdk.version}</version>
             </dependency>
 
             <!-- MyBatis Plus -->
@@ -103,13 +151,6 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>druid-spring-boot-3-starter</artifactId>
                 <version>${druid.version}</version>
-            </dependency>
-
-            <!-- Qdrant 向量数据库 -->
-            <dependency>
-                <groupId>io.qdrant</groupId>
-                <artifactId>client</artifactId>
-                <version>${qdrant-client.version}</version>
             </dependency>
 
             <!-- Redisson (Redis 客户端) -->

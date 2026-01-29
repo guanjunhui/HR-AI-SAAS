@@ -26,37 +26,31 @@ spring:
       time-between-eviction-runs-millis: 60000
       min-evictable-idle-time-millis: 300000
 
-  # AI 配置 (通义千问)
-  ai:
-    dashscope:
-      api-key: ${DASHSCOPE_API_KEY:sk-your-api-key}
-      # 聊天模型配置
-      chat:
-        options:
-          model: qwen-plus  # 可选: qwen-turbo, qwen-plus, qwen-max
-          temperature: 0.7
-          top-p: 0.8
-          max-tokens: 2000
-      # 嵌入模型配置
-      embedding:
-        options:
-          model: text-embedding-v2  # 768维向量
-
-  # RabbitMQ 配置
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    virtual-host: /
-    # 消费者配置
+  # ========== Kafka 消息队列 ==========
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 3
+      batch-size: 16384
+      buffer-memory: 33554432
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      group-id: hr-ai-agent-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.hrai.*
+        max.poll.records: 100
     listener:
-      simple:
-        acknowledge-mode: manual  # 手动确认
-        prefetch: 1  # 预取数量
-        retry:
-          enabled: true
-          max-attempts: 3
+      ack-mode: manual_immediate
+      concurrency: 3
 
   # Redis 配置 (通过 Redisson)
   redis:
@@ -77,6 +71,72 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+  # ========== Spring AI Alibaba 配置 ==========
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:sk-your-api-key}
+      # 聊天模型配置
+      chat:
+        options:
+          model: qwen-plus  # 可选: qwen-turbo, qwen-plus, qwen-max
+          temperature: 0.7
+          top-p: 0.8
+          max-tokens: 2000
+      # 嵌入模型配置
+      embedding:
+        options:
+          model: text-embedding-v2  # 768维向量
+
+    # Milvus 向量存储 (Spring AI 集成)
+    vectorstore:
+      milvus:
+        host: ${MILVUS_HOST:localhost}
+        port: ${MILVUS_PORT:19530}
+        collection-name: hr_knowledge
+        embedding-dimension: 768
+        index-type: IVF_FLAT
+        metric-type: COSINE
+
+    # ========== MCP 配置 - 工具动态注册与发现 ==========
+    alibaba:
+      mcp:
+        nacos:
+          server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+          namespace: ${NACOS_NAMESPACE:public}
+          group: MCP_GROUP
+          username: ${NACOS_USERNAME:nacos}
+          password: ${NACOS_PASSWORD:nacos}
+          # MCP Server - 工具注册
+          server:
+            enabled: true
+            name: hr-ai-mcp-server
+            description: HR AI Agent 工具服务
+          # MCP Client - 外部工具发现
+          client:
+            enabled: true
+            # 外部 MCP Server 接入 (IDE 插件、浏览器扩展等)
+            external-servers: []
+
+      # ========== A2A 协议 - Agent 间任务委派 ==========
+      a2a:
+        server:
+          enabled: true
+          name: hr-ai-agent
+          description: HR AI SaaS 主 Agent 服务
+          skills:
+            - name: hr-policy
+              description: HR 政策咨询
+            - name: recruiting
+              description: 招聘流程管理
+            - name: ticket-routing
+              description: 工单路由分发
+        nacos:
+          discovery:
+            enabled: true
+            server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+            namespace: ${NACOS_NAMESPACE:public}
+            group: A2A_GROUP
+
 # MyBatis Plus 配置
 mybatis-plus:
   configuration:
@@ -89,22 +149,26 @@ mybatis-plus:
       logic-not-delete-value: 0
   mapper-locations: classpath*:/mapper/**/*.xml
 
-# Qdrant 向量数据库配置
-qdrant:
-  host: localhost
-  port: 6334
-  api-key: ${QDRANT_API_KEY:}  # 可选
-  use-tls: false
-  # 集合配置
+# ========== Milvus 向量数据库配置 (原生 SDK) ==========
+milvus:
+  host: ${MILVUS_HOST:localhost}
+  port: ${MILVUS_PORT:19530}
+  username: ${MILVUS_USERNAME:}
+  password: ${MILVUS_PASSWORD:}
+  # Collection 定义
   collections:
     knowledge:
-      name: knowledge_default
-      vector-size: 768
-      distance: Cosine
+      name: hr_knowledge
+      dimension: 768
+      index-type: IVF_FLAT
+      metric-type: COSINE
+      description: HR 知识库向量存储
     memory:
       name: user_memory
-      vector-size: 768
-      distance: Cosine
+      dimension: 768
+      index-type: IVF_FLAT
+      metric-type: COSINE
+      description: 用户长期记忆向量存储
 
 # Agent 配置
 agent:
@@ -148,5 +212,8 @@ logging:
     root: INFO
     com.hrai: DEBUG
     org.springframework.ai: DEBUG
+    com.alibaba.cloud.ai: DEBUG
+    io.milvus: INFO
+    org.apache.kafka: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"

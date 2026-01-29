@@ -1,0 +1,245 @@
+package com.hrai.agent.a2a;
+
+import com.hrai.agent.config.KafkaConfig;
+import com.hrai.common.context.TenantContext;
+import lombok.Builder;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * A2A Agent 任务委派
+ * 实现 Agent 间的任务委派协议
+ *
+ * 支持场景:
+ * - HR Agent 将招聘任务委派给 Recruiting Agent
+ * - 主 Agent 将策略查询任务委派给 HR Policy Agent
+ * - 跨服务的 Agent 协调
+ *
+ * @author HR AI Team
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AgentTaskDelegation {
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    /**
+     * 委派招聘任务
+     *
+     * @param taskDescription 任务描述
+     * @param candidateInfo 候选人信息
+     * @return 任务 ID
+     */
+    public String delegateRecruitingTask(String taskDescription, Map<String, Object> candidateInfo) {
+        A2ATask task = A2ATask.builder()
+                .taskId(generateTaskId())
+                .taskType(TaskType.RECRUITING)
+                .sourceAgent("hr-ai-agent")
+                .targetAgent("recruiting-agent")
+                .tenantId(TenantContext.getTenantId())
+                .userId(TenantContext.getUserId())
+                .sessionId(TenantContext.getSessionId())
+                .description(taskDescription)
+                .payload(candidateInfo)
+                .priority(TaskPriority.NORMAL)
+                .createdAt(LocalDateTime.now())
+                .status(TaskStatus.PENDING)
+                .build();
+
+        sendTask(task);
+        log.info("招聘任务已委派: taskId={}, description={}", task.getTaskId(), taskDescription);
+
+        return task.getTaskId();
+    }
+
+    /**
+     * 委派 HR 政策查询任务
+     *
+     * @param question 查询问题
+     * @param context 上下文信息
+     * @return 任务 ID
+     */
+    public String delegatePolicyQueryTask(String question, Map<String, Object> context) {
+        A2ATask task = A2ATask.builder()
+                .taskId(generateTaskId())
+                .taskType(TaskType.POLICY_QUERY)
+                .sourceAgent("hr-ai-agent")
+                .targetAgent("hr-policy-agent")
+                .tenantId(TenantContext.getTenantId())
+                .userId(TenantContext.getUserId())
+                .sessionId(TenantContext.getSessionId())
+                .description(question)
+                .payload(context)
+                .priority(TaskPriority.HIGH)
+                .createdAt(LocalDateTime.now())
+                .status(TaskStatus.PENDING)
+                .build();
+
+        sendTask(task);
+        log.info("政策查询任务已委派: taskId={}, question={}", task.getTaskId(), question);
+
+        return task.getTaskId();
+    }
+
+    /**
+     * 委派工单处理任务
+     *
+     * @param ticketId 工单 ID
+     * @param ticketInfo 工单信息
+     * @return 任务 ID
+     */
+    public String delegateTicketTask(String ticketId, Map<String, Object> ticketInfo) {
+        A2ATask task = A2ATask.builder()
+                .taskId(generateTaskId())
+                .taskType(TaskType.TICKET_PROCESSING)
+                .sourceAgent("ticket-router-agent")
+                .targetAgent(determineTargetAgent(ticketInfo))
+                .tenantId(TenantContext.getTenantId())
+                .userId(TenantContext.getUserId())
+                .sessionId(TenantContext.getSessionId())
+                .description("处理工单: " + ticketId)
+                .payload(ticketInfo)
+                .priority(determinePriority(ticketInfo))
+                .createdAt(LocalDateTime.now())
+                .status(TaskStatus.PENDING)
+                .build();
+
+        sendTask(task);
+        log.info("工单任务已委派: taskId={}, ticketId={}, targetAgent={}",
+                task.getTaskId(), ticketId, task.getTargetAgent());
+
+        return task.getTaskId();
+    }
+
+    /**
+     * 异步委派任务并等待结果
+     *
+     * @param task 任务
+     * @return 任务结果 Future
+     */
+    public CompletableFuture<A2ATaskResult> delegateTaskAsync(A2ATask task) {
+        sendTask(task);
+
+        // 返回 Future，实际结果通过回调或轮询获取
+        // 完整实现需要结合 Redis 或其他存储来跟踪任务状态
+        return CompletableFuture.supplyAsync(() -> {
+            // 模拟等待结果
+            return A2ATaskResult.builder()
+                    .taskId(task.getTaskId())
+                    .status(TaskStatus.COMPLETED)
+                    .result(Map.of("message", "任务处理中"))
+                    .build();
+        });
+    }
+
+    /**
+     * 发送任务到 Kafka
+     */
+    private void sendTask(A2ATask task) {
+        kafkaTemplate.send(
+                KafkaConfig.Topics.A2A_TASK_DELEGATION,
+                task.getTargetAgent(),  // 使用目标 Agent 作为 key，确保同一 Agent 的任务发到同一分区
+                task
+        );
+    }
+
+    /**
+     * 生成任务 ID
+     */
+    private String generateTaskId() {
+        return "A2A-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    /**
+     * 根据工单信息确定目标 Agent
+     */
+    private String determineTargetAgent(Map<String, Object> ticketInfo) {
+        String category = (String) ticketInfo.getOrDefault("category", "general");
+
+        return switch (category) {
+            case "recruiting", "recruitment" -> "recruiting-agent";
+            case "policy", "hr-policy" -> "hr-policy-agent";
+            case "payroll", "salary" -> "payroll-agent";
+            case "training", "learning" -> "training-agent";
+            default -> "hr-ai-agent";
+        };
+    }
+
+    /**
+     * 根据工单信息确定优先级
+     */
+    private TaskPriority determinePriority(Map<String, Object> ticketInfo) {
+        String priority = (String) ticketInfo.getOrDefault("priority", "normal");
+
+        return switch (priority.toLowerCase()) {
+            case "urgent", "critical" -> TaskPriority.URGENT;
+            case "high" -> TaskPriority.HIGH;
+            case "low" -> TaskPriority.LOW;
+            default -> TaskPriority.NORMAL;
+        };
+    }
+
+    // ========== Task 相关数据类 ==========
+
+    @Data
+    @Builder
+    public static class A2ATask {
+        private String taskId;
+        private TaskType taskType;
+        private String sourceAgent;
+        private String targetAgent;
+        private String tenantId;
+        private String userId;
+        private String sessionId;
+        private String description;
+        private Map<String, Object> payload;
+        private TaskPriority priority;
+        private LocalDateTime createdAt;
+        private TaskStatus status;
+        private LocalDateTime deadline;
+        private int retryCount;
+    }
+
+    @Data
+    @Builder
+    public static class A2ATaskResult {
+        private String taskId;
+        private TaskStatus status;
+        private Map<String, Object> result;
+        private String errorMessage;
+        private LocalDateTime completedAt;
+    }
+
+    public enum TaskType {
+        RECRUITING,          // 招聘任务
+        POLICY_QUERY,        // 政策查询
+        TICKET_PROCESSING,   // 工单处理
+        KNOWLEDGE_UPDATE,    // 知识库更新
+        WORKFLOW_TRIGGER,    // 工作流触发
+        NOTIFICATION         // 通知任务
+    }
+
+    public enum TaskPriority {
+        LOW,
+        NORMAL,
+        HIGH,
+        URGENT
+    }
+
+    public enum TaskStatus {
+        PENDING,       // 待处理
+        IN_PROGRESS,   // 处理中
+        COMPLETED,     // 已完成
+        FAILED,        // 失败
+        CANCELLED      // 已取消
+    }
+}

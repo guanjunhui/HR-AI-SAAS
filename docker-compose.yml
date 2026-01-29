@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # ========== 数据库 ==========
   # MySQL 数据库
   mysql:
     image: mysql:8.0
@@ -27,6 +28,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # ========== 缓存 ==========
   # Redis 缓存
   redis:
     image: redis:7-alpine
@@ -43,42 +45,162 @@ services:
       timeout: 3s
       retries: 3
 
-  # Qdrant 向量数据库
-  qdrant:
-    image: qdrant/qdrant:v1.7.0
-    container_name: hr-ai-qdrant
+  # ========== 配置中心 & 服务发现 ==========
+  # Nacos 3.x (支持 MCP 注册发现)
+  nacos:
+    image: nacos/nacos-server:v3.0.0
+    container_name: hr-ai-nacos
     ports:
-      - "6333:6333"  # HTTP API
-      - "6334:6334"  # gRPC API
-    volumes:
-      - qdrant_data:/qdrant/storage
-    networks:
-      - hr-ai-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:6333/health"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-  # RabbitMQ 消息队列
-  rabbitmq:
-    image: rabbitmq:3.12-management-alpine
-    container_name: hr-ai-rabbitmq
-    ports:
-      - "5672:5672"   # AMQP
-      - "15672:15672" # 管理界面
+      - "8848:8848"   # HTTP API
+      - "9848:9848"   # gRPC (客户端)
+      - "9849:9849"   # gRPC (集群)
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_IDENTITY_KEY: serverIdentity
+      NACOS_AUTH_IDENTITY_VALUE: security
+      NACOS_AUTH_TOKEN: SecretKey012345678901234567890123456789012345678901234567890123456789
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+      JVM_XMN: 256m
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - nacos_data:/home/nacos/data
     networks:
       - hr-ai-network
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
       interval: 10s
       timeout: 5s
+      retries: 10
+
+  # ========== 消息队列 ==========
+  # Kafka (KRaft 模式, 无 Zookeeper)
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: hr-ai-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_data:/tmp/kraft-combined-logs
+    networks:
+      - hr-ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
       retries: 5
+
+  # Kafka UI (管理界面)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: hr-ai-kafka-ui
+    ports:
+      - "9080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: hr-ai-kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - hr-ai-network
+
+  # ========== 向量数据库 ==========
+  # Etcd (Milvus 元数据存储)
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: hr-ai-etcd
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+    volumes:
+      - etcd_data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls=http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - hr-ai-network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MinIO (Milvus 对象存储)
+  minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: hr-ai-minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - hr-ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Milvus 向量数据库 (Standalone)
+  milvus:
+    image: milvusdb/milvus:v2.5.4
+    container_name: hr-ai-milvus
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - hr-ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Attu (Milvus 管理界面)
+  attu:
+    image: zilliz/attu:v2.4
+    container_name: hr-ai-attu
+    ports:
+      - "8000:3000"
+    environment:
+      MILVUS_URL: milvus:19530
+    depends_on:
+      milvus:
+        condition: service_healthy
+    networks:
+      - hr-ai-network
 
 networks:
   hr-ai-network:
@@ -89,7 +211,13 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  qdrant_data:
+  nacos_data:
     driver: local
-  rabbitmq_data:
+  kafka_data:
+    driver: local
+  etcd_data:
+    driver: local
+  minio_data:
+    driver: local
+  milvus_data:
     driver: local

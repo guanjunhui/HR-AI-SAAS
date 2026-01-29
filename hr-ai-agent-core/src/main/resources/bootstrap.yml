@@ -1,0 +1,34 @@
+# Bootstrap 配置 - Nacos 配置中心与服务发现
+# 此文件在 application.yml 之前加载
+
+spring:
+  application:
+    name: hr-ai-agent-core
+
+  cloud:
+    nacos:
+      # Nacos 配置中心
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        file-extension: yaml
+        namespace: ${NACOS_NAMESPACE:public}
+        group: DEFAULT_GROUP
+        # 启用认证 (Nacos 3.x 默认开启)
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
+        # 共享配置 (多应用共享)
+        shared-configs:
+          - data-id: hr-ai-common.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+
+      # Nacos 服务发现
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
+        # 元数据 (用于 Agent 发现)
+        metadata:
+          service-type: agent
+          agent-name: hr-ai-agent
