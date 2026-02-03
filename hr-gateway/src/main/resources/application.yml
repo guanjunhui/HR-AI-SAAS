@@ -1,0 +1,92 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: hr-gateway
+
+  # Redis 配置 (用于限流)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 1
+      timeout: 3000ms
+
+  cloud:
+    # 禁用 Nacos (本地开发时使用)
+    nacos:
+      config:
+        enabled: false
+        import-check:
+          enabled: false
+      discovery:
+        enabled: false
+
+    gateway:
+      # 全局默认过滤器
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
+      # 路由配置 (Nacos 禁用时使用直接 URL)
+      routes:
+        # 组织鉴权服务
+        - id: hr-org-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/auth/**, /api/v1/org/**, /api/v1/user/**
+
+        # Agent 核心服务
+        - id: hr-ai-agent-core
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/v1/agent/**, /api/v1/chat/**, /api/v1/knowledge/**
+
+        # 健康检查
+        - id: health-check
+          uri: no://op
+          predicates:
+            - Path=/health/**
+          filters:
+            - SetStatus=200
+
+      # 全局 CORS 配置 (备用，CorsConfig 优先)
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+      # 服务发现路由 (Nacos 启用后可开启)
+      discovery:
+        locator:
+          enabled: false
+          lower-case-service-id: true
+
+# JWT 配置
+jwt:
+  secret: ${JWT_SECRET:hr-ai-saas-jwt-secret-key-must-be-at-least-32-characters-long}
+  expiration: 28800000  # 8 小时
+  issuer: hr-ai-saas
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: when_authorized
+    gateway:
+      enabled: true
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.hrai.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG

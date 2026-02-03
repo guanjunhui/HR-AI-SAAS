@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: hr-gateway
+
+  cloud:
+    nacos:
+      # 配置中心
+      config:
+        server-addr: localhost:8848
+        namespace: public
+        file-extension: yaml
+        group: DEFAULT_GROUP
+        # 共享配置
+        shared-configs:
+          - data-id: common.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+
+      # 服务发现
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP

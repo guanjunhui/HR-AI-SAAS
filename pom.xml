@@ -16,6 +16,8 @@
     <modules>
         <module>hr-ai-common</module>
         <module>hr-ai-agent-core</module>
+        <module>hr-gateway</module>
+        <module>hr-org-service</module>
     </modules>
 
     <properties>
@@ -30,11 +32,14 @@
         <spring-cloud.version>2023.0.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
 
-        <!-- Spring AI Alibaba 版本 (1.1.0.0-RC2 支持 agent-framework + graph) -->
+        <!-- Spring AI Alibaba 版本 (1.1.0.0-RC2) -->
         <spring-ai-alibaba.version>1.1.0.0-RC2</spring-ai-alibaba.version>
 
+        <!-- JWT -->
+        <jjwt.version>0.12.5</jjwt.version>
+
         <!-- 数据库版本 -->
-        <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <mysql-connector.version>8.0.33</mysql-connector.version>
         <druid.version>1.2.20</druid.version>
 
@@ -51,7 +56,7 @@
         <spring-statemachine.version>4.0.0</spring-statemachine.version>
 
         <!-- 工具库 -->
-        <lombok.version>1.18.30</lombok.version>
+        <lombok.version>1.18.34</lombok.version>
         <hutool.version>5.8.24</hutool.version>
         <guava.version>32.1.3-jre</guava.version>
         <fastjson2.version>2.0.45</fastjson2.version>
@@ -89,39 +94,15 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- Spring AI Alibaba 核心依赖 (显式版本声明) -->
+            <!-- Spring AI Alibaba 核心依赖 (1.1.0.0-RC2) -->
             <dependency>
                 <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-starter</artifactId>
+                <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
                 <version>${spring-ai-alibaba.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-starter-agent</artifactId>
-                <version>${spring-ai-alibaba.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-graph-core</artifactId>
-                <version>${spring-ai-alibaba.version}</version>
-            </dependency>
-
-            <!-- MCP Nacos 集成 -->
-            <dependency>
-                <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-starter-nacos-mcp-server</artifactId>
-                <version>${spring-ai-alibaba.version}</version>
-            </dependency>
-
-            <!-- A2A 协议支持 -->
-            <dependency>
-                <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-starter-a2a-server</artifactId>
-                <version>${spring-ai-alibaba.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-starter-a2a-nacos-discovery</artifactId>
+                <artifactId>spring-ai-alibaba-agent-framework</artifactId>
                 <version>${spring-ai-alibaba.version}</version>
             </dependency>
 
@@ -132,10 +113,10 @@
                 <version>${milvus-sdk.version}</version>
             </dependency>
 
-            <!-- MyBatis Plus -->
+            <!-- MyBatis Plus (Spring Boot 3 专用) -->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
 
@@ -193,6 +174,25 @@
                 <groupId>com.alibaba.fastjson2</groupId>
                 <artifactId>fastjson2</artifactId>
                 <version>${fastjson2.version}</version>
+            </dependency>
+
+            <!-- JJWT (JWT 认证) -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

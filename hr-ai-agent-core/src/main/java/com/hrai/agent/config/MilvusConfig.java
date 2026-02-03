@@ -8,7 +8,8 @@ import io.milvus.v2.common.DataType;
 import io.milvus.v2.common.IndexParam;
 import jakarta.annotation.PostConstruct;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,11 +24,12 @@ import java.util.Map;
  *
  * @author HR AI Team
  */
-@Slf4j
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "milvus")
 public class MilvusConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(MilvusConfig.class);
 
     /**
      * Milvus 服务地址

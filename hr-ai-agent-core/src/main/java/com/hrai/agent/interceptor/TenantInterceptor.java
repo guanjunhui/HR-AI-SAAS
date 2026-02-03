@@ -4,7 +4,8 @@ import com.hrai.common.constant.TenantConstants;
 import com.hrai.common.context.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -18,9 +19,10 @@ import java.util.UUID;
  *
  * @author HR AI Team
  */
-@Slf4j
 @Component
 public class TenantInterceptor implements HandlerInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(TenantInterceptor.class);
 
     /**
      * 套餐类型请求头

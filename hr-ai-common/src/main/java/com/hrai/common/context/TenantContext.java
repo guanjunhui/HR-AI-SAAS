@@ -1,6 +1,5 @@
 package com.hrai.common.context;
 
-import lombok.Data;
 
 /**
  * 租户上下文
@@ -16,37 +15,61 @@ public class TenantContext {
     /**
      * 租户信息
      */
-    @Data
     public static class TenantInfo {
-        /**
-         * 租户 ID
-         */
         private String tenantId;
-
-        /**
-         * 用户 ID
-         */
         private String userId;
-
-        /**
-         * 会话 ID
-         */
         private String sessionId;
-
-        /**
-         * 套餐类型: free / pro / enterprise
-         */
         private String planType;
-
-        /**
-         * 请求追踪 ID
-         */
         private String traceId;
-
-        /**
-         * 请求时间戳
-         */
         private Long requestTimestamp;
+
+        public String getTenantId() {
+            return tenantId;
+        }
+
+        public void setTenantId(String tenantId) {
+            this.tenantId = tenantId;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public void setUserId(String userId) {
+            this.userId = userId;
+        }
+
+        public String getSessionId() {
+            return sessionId;
+        }
+
+        public void setSessionId(String sessionId) {
+            this.sessionId = sessionId;
+        }
+
+        public String getPlanType() {
+            return planType;
+        }
+
+        public void setPlanType(String planType) {
+            this.planType = planType;
+        }
+
+        public String getTraceId() {
+            return traceId;
+        }
+
+        public void setTraceId(String traceId) {
+            this.traceId = traceId;
+        }
+
+        public Long getRequestTimestamp() {
+            return requestTimestamp;
+        }
+
+        public void setRequestTimestamp(Long requestTimestamp) {
+            this.requestTimestamp = requestTimestamp;
+        }
     }
 
     /**

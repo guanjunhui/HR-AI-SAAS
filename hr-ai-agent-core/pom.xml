@@ -37,39 +37,17 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- ========== Spring AI Alibaba 1.1.0.0-RC2 ========== -->
-        <!-- 核心 Starter -->
+        <!-- ========== Spring AI Alibaba 1.1.0.0-RC2 (暂时禁用以排查编译问题) ========== -->
+        <!--
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter</artifactId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
         </dependency>
-        <!-- Agent Framework -->
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter-agent</artifactId>
+            <artifactId>spring-ai-alibaba-agent-framework</artifactId>
         </dependency>
-        <!-- Graph Core (工作流图) -->
-        <dependency>
-            <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-graph-core</artifactId>
-        </dependency>
-
-        <!-- ========== MCP + A2A 支持 ========== -->
-        <!-- MCP Nacos 服务端 - 工具动态注册 -->
-        <dependency>
-            <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter-nacos-mcp-server</artifactId>
-        </dependency>
-        <!-- A2A 服务端 - Agent 间任务委派 -->
-        <dependency>
-            <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter-a2a-server</artifactId>
-        </dependency>
-        <!-- A2A Nacos 发现 - 多服务 Agent 协调 -->
-        <dependency>
-            <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter-a2a-nacos-discovery</artifactId>
-        </dependency>
+        -->
 
         <!-- ========== Nacos 配置与发现 ========== -->
         <dependency>
@@ -97,7 +75,7 @@
         <!-- MyBatis Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
         <!-- MySQL -->
         <dependency>
