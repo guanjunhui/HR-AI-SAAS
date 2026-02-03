@@ -15,6 +15,7 @@ import {
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { logoutApi } from '@/services/auth';
 
 const { Header, Sider, Content } = Layout;
 
@@ -92,12 +93,12 @@ const BasicLayout: React.FC = () => {
                             alignItems: 'center',
                             gap: '10px'
                         }}>
-                            <Avatar icon={<UserOutlined />} />
+                            <Avatar src={user?.avatar || undefined} icon={!user?.avatar ? <UserOutlined /> : undefined} />
                             <div style={{ overflow: 'hidden' }}>
                                 <div style={{ color: 'white', fontWeight: '500', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                                    {user?.name || 'User'}
+                                    {user?.realName || user?.username || 'User'}
                                 </div>
-                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>Admin</div>
+                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>{user?.roleName || ''}</div>
                             </div>
                         </div>
                     </div>
@@ -134,7 +135,7 @@ const BasicLayout: React.FC = () => {
                     <Space size="large">
                         <Button type="text" shape="circle" icon={<BellOutlined />} />
                         <Button type="primary" shape="round" icon={<RobotOutlined />}>AI Assistant</Button>
-                        <Button type="link" onClick={() => logout()}>Logout</Button>
+                        <Button type="link" onClick={() => { logoutApi().catch(() => {}); logout(); }}>Logout</Button>
                     </Space>
                 </Header>
 

@@ -1,15 +1,10 @@
 package com.hrai.common.exception;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-
 /**
  * 业务异常
  *
  * @author HR AI Team
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
 public class BizException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
@@ -17,12 +12,12 @@ public class BizException extends RuntimeException {
     /**
      * 错误码
      */
-    private Integer code;
+    private final Integer code;
 
     /**
      * 错误消息
      */
-    private String message;
+    private final String message;
 
     public BizException(String message) {
         super(message);
@@ -40,5 +35,14 @@ public class BizException extends RuntimeException {
         super(message, cause);
         this.code = code;
         this.message = message;
+    }
+
+    public Integer getCode() {
+        return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return message;
     }
 }

@@ -32,11 +32,11 @@ ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 -- ============================================
 INSERT INTO `sys_user` (`tenant_id`, `username`, `password`, `real_name`, `email`, `phone`, `status`, `role_id`, `org_unit_id`, `plan_type`)
 VALUES
-    ('tenant_default', 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '系统管理员', 'admin@hrai.com', '13800000000', 1, 1, 1, 'enterprise'),
-    ('tenant_default', 'hr_admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'HR 管理员', 'hr@hrai.com', '13800000001', 1, 3, 3, 'pro'),
-    ('tenant_default', 'test_user', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '测试用户', 'test@hrai.com', '13800000002', 1, 4, 5, 'free')
+    ('tenant_default', 'admin', '$2a$10$cVqnj4XHelOFBrctgM6KFe6OOBhBt.GuJetm2GBxJFNiYF8boYuyq', '系统管理员', 'admin@hrai.com', '13800000000', 1, 1, 1, 'enterprise'),
+    ('tenant_default', 'hr_admin', '$2a$10$cVqnj4XHelOFBrctgM6KFe6OOBhBt.GuJetm2GBxJFNiYF8boYuyq', 'HR 管理员', 'hr@hrai.com', '13800000001', 1, 3, 3, 'pro'),
+    ('tenant_default', 'test_user', '$2a$10$cVqnj4XHelOFBrctgM6KFe6OOBhBt.GuJetm2GBxJFNiYF8boYuyq', '测试用户', 'test@hrai.com', '13800000002', 1, 4, 5, 'free')
 ON DUPLICATE KEY UPDATE `real_name` = VALUES(`real_name`);
 
 -- 说明:
 -- 默认密码: admin123
--- BCrypt hash: $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi
+-- BCrypt hash: $2a$10$cVqnj4XHelOFBrctgM6KFe6OOBhBt.GuJetm2GBxJFNiYF8boYuyq

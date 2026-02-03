@@ -3,36 +3,30 @@ import { Form, Input, Button, Checkbox, message, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { loginApi } from '@/services/auth';
+import type { LoginParams } from '@/types/auth';
 
 const { Title, Text } = Typography;
 
 const LoginPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
-    const login = useAuthStore(state => state.login);
+    const setAuth = useAuthStore(state => state.setAuth);
     const navigate = useNavigate();
 
-    const onFinish = async (values: any) => {
+    const onFinish = async (values: LoginParams) => {
         setLoading(true);
         try {
-            console.log('Received values of form: ', values);
-
-            // Mock login for now
-            setTimeout(() => {
-                const mockUser = {
-                    id: '1',
-                    username: values.username,
-                    name: 'Admin User',
-                    roles: ['admin'],
-                    tenantId: '1'
-                };
-                login('mock-jwt-token', mockUser);
-                message.success('登录成功');
-                navigate('/');
-                setLoading(false);
-            }, 1000);
-
-        } catch (error) {
-            console.error(error);
+            const result = await loginApi({
+                username: values.username,
+                password: values.password,
+            });
+            const { accessToken, refreshToken, expiresIn, userInfo } = result;
+            setAuth(accessToken, refreshToken, expiresIn, userInfo);
+            message.success('登录成功');
+            navigate('/');
+        } catch {
+            // 错误已由 request.ts 拦截器处理（弹窗提示）
+        } finally {
             setLoading(false);
         }
     };
