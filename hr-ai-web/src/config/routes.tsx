@@ -1,60 +1,7 @@
-import React, { useEffect, useState } from 'react';
 import { Navigate, createBrowserRouter } from 'react-router-dom';
-import { Spin } from 'antd';
 import LoginPage from '@/pages/login';
 import BasicLayout from '@/layouts/BasicLayout';
-import { useAuthStore } from '@/stores/useAuthStore';
-import { getCurrentUserApi } from '@/services/auth';
-
-// Initialize pages with lazy loading placeholders for now
-const Dashboard = () => <div><h2>Dashboard</h2><p>Welcome to HR AI SaaS Workbench.</p></div>;
-const Org = () => <div><h2>Organization Management</h2></div>;
-const HR = () => <div><h2>Core HR</h2></div>;
-const Recruiting = () => <div><h2>Recruiting</h2></div>;
-const Attendance = () => <div><h2>Attendance</h2></div>;
-const Payroll = () => <div><h2>Payroll</h2></div>;
-const Performance = () => <div><h2>Performance</h2></div>;
-const AIHub = () => <div><h2>AI Capability Center</h2></div>;
-
-// 路由守卫：验证 Token 有效性
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    const { isAuthenticated, token, updateUser } = useAuthStore();
-    const [checking, setChecking] = useState(false);
-    const [checked, setChecked] = useState(false);
-
-    useEffect(() => {
-        // 仅首次挂载时验证 Token
-        if (isAuthenticated && token && !checked) {
-            setChecking(true);
-            getCurrentUserApi()
-                .then((userInfo) => {
-                    updateUser(userInfo);
-                })
-                .catch(() => {
-                    // Token 无效时，request.ts 拦截器会尝试 refresh，
-                    // 最终失败会自动 logout 并跳转登录页
-                })
-                .finally(() => {
-                    setChecking(false);
-                    setChecked(true);
-                });
-        }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
-
-    if (checking) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <Spin size="large" tip="验证登录状态..." />
-            </div>
-        );
-    }
-
-    return children;
-};
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
     {
@@ -69,14 +16,110 @@ export const router = createBrowserRouter([
             </ProtectedRoute>
         ),
         children: [
-            { path: '', element: <Dashboard /> },
-            { path: 'org/*', element: <Org /> },
-            { path: 'hr/*', element: <HR /> },
-            { path: 'recruiting/*', element: <Recruiting /> },
-            { path: 'attendance/*', element: <Attendance /> },
-            { path: 'payroll/*', element: <Payroll /> },
-            { path: 'performance/*', element: <Performance /> },
-            { path: 'ai/*', element: <AIHub /> },
+            {
+                index: true,
+                lazy: async () => {
+                    const mod = await import('@/pages/placeholder');
+                    return { Component: mod.DashboardPage };
+                },
+            },
+            {
+                path: 'org',
+                children: [
+                    { index: true, element: <Navigate to="/org/units" replace /> },
+                    {
+                        path: 'units',
+                        lazy: async () => {
+                            const mod = await import('@/pages/org/units');
+                            return { Component: mod.default };
+                        },
+                    },
+                    {
+                        path: 'units/:id',
+                        lazy: async () => {
+                            const mod = await import('@/pages/org/units/detail');
+                            return { Component: mod.default };
+                        },
+                    },
+                    {
+                        path: 'users',
+                        lazy: async () => {
+                            const mod = await import('@/pages/org/users');
+                            return { Component: mod.default };
+                        },
+                    },
+                    {
+                        path: 'users/:id',
+                        lazy: async () => {
+                            const mod = await import('@/pages/org/users/detail');
+                            return { Component: mod.default };
+                        },
+                    },
+                    {
+                        path: 'roles',
+                        lazy: async () => {
+                            const mod = await import('@/pages/org/roles');
+                            return { Component: mod.default };
+                        },
+                    },
+                    {
+                        path: 'roles/:id',
+                        lazy: async () => {
+                            const mod = await import('@/pages/org/roles/detail');
+                            return { Component: mod.default };
+                        },
+                    },
+                    {
+                        path: 'audit',
+                        lazy: async () => {
+                            const mod = await import('@/pages/org/audit');
+                            return { Component: mod.default };
+                        },
+                    },
+                ],
+            },
+            {
+                path: 'hr/*',
+                lazy: async () => {
+                    const mod = await import('@/pages/placeholder');
+                    return { Component: mod.HRPlaceholderPage };
+                },
+            },
+            {
+                path: 'recruiting/*',
+                lazy: async () => {
+                    const mod = await import('@/pages/placeholder');
+                    return { Component: mod.RecruitingPlaceholderPage };
+                },
+            },
+            {
+                path: 'attendance/*',
+                lazy: async () => {
+                    const mod = await import('@/pages/placeholder');
+                    return { Component: mod.AttendancePlaceholderPage };
+                },
+            },
+            {
+                path: 'payroll/*',
+                lazy: async () => {
+                    const mod = await import('@/pages/placeholder');
+                    return { Component: mod.PayrollPlaceholderPage };
+                },
+            },
+            {
+                path: 'performance/*',
+                lazy: async () => {
+                    const mod = await import('@/pages/placeholder');
+                    return { Component: mod.PerformancePlaceholderPage };
+                },
+            },
+            {
+                path: 'ai/*',
+                lazy: async () => {
+                    const mod = await import('@/pages/placeholder');
+                    return { Component: mod.AIHubPlaceholderPage };
+                },
+            },
         ],
     },
     {

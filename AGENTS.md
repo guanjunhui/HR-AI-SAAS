@@ -1,36 +1,38 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Multi-module Maven project.
-- `hr-ai-common/`: shared utilities, DTOs, constants, exceptions (`src/main/java/com/hrai/common`).
-- `hr-ai-agent-core/`: main Spring Boot service (`src/main/java/com/hrai/agent`).
-- Config & data: `hr-ai-agent-core/src/main/resources/application.yml` and `hr-ai-agent-core/src/main/resources/db/`.
-- Local specs/notes live under `docs/` (e.g., `docs/更换技术栈/`, `docs/更换技术栈/2026-01-29-V1/`).
-- Quick references: `PROJECT_README.md`, `QUICKSTART.md`, and `docker-compose.yml`.
+- `hr-ai-common/`: shared utilities and constants for backend services.
+- `hr-ai-agent-core/`: core agent service and shared business assets.
+- `hr-gateway/`: API gateway.
+- `hr-org-service/`: organization/permission service; tests live under `hr-org-service/src/test/java/...`.
+- `hr-ai-web/`: React + Vite frontend; entry point is `hr-ai-web/src/main.tsx`.
+- `docs/`: product specs, plans, and design notes.
+- `scripts/` and `docker-compose.yml`: local tooling and infrastructure helpers.
 
 ## Build, Test, and Development Commands
-- `./scripts/verify-setup.sh`: sanity-check structure and run a quick Maven compile.
-- `./scripts/start-dev.sh`: start MySQL/Redis/Qdrant/RabbitMQ via Docker Compose.
-- `./scripts/stop-dev.sh`: stop local dependency containers.
-- `mvn clean package -DskipTests`: build all modules.
-- `mvn test`: run unit tests (when present).
-- `cd hr-ai-agent-core && mvn spring-boot:run`: run the main service locally.
+Backend (Maven):
+- `mvn clean package -DskipTests` builds all Maven modules.
+- `mvn spring-boot:run` runs a Spring Boot service from its module directory.
+
+Frontend (Vite):
+- `npm run dev` starts the dev server in `hr-ai-web/`.
+- `npm run build` produces the production bundle.
+- `npm run lint` runs ESLint.
+- `npm run preview` previews a production build.
 
 ## Coding Style & Naming Conventions
-- Java 17, Spring Boot conventions.
-- Indentation: 4 spaces; braces on same line.
-- Names: `UpperCamelCase` for classes, `lowerCamelCase` for methods/fields, `com.hrai...` package prefix.
-- Keep configuration in `application.yml`; DB init scripts in `resources/db/`.
+- Java uses `com.hrai.*` packages (for example, controllers in `hr-org-service/src/main/java/com/hrai/org/controller/`).
+- Java code follows 4-space indentation; TypeScript/TSX follows 2-space indentation (see `hr-ai-web/src/main.tsx`).
+- React components use `*.tsx` with PascalCase filenames (for example, `App.tsx`), while page entries typically use `index.tsx` under `hr-ai-web/src/pages/`.
 
 ## Testing Guidelines
-- Frameworks: Spring Boot Starter Test (JUnit 5 + Mockito).
-- Place tests under `src/test/java` mirroring package structure; name tests `*Test`.
-- No enforced coverage gate yet; add tests for new logic and bug fixes.
+- Backend tests are in `hr-org-service/src/test/java/...` and follow `*Test.java` naming. Run with `mvn test`.
+- Frontend verification is via `npm run lint` and `npm run build` scripts.
 
 ## Commit & Pull Request Guidelines
-- Git history is not available in this workspace; use concise, imperative commit messages (or Conventional Commits if unsure).
-- PRs should include: summary of changes, how to run/verify, and any config or schema updates. Add screenshots only when UI changes exist.
+- The project README recommends: fork, create a feature branch, commit, push, and open a PR.
+- Recent history uses short, descriptive Chinese summaries (for example, “完善网关和鉴权功能前后端代码”), while the README’s example is `git commit -m 'Add some AmazingFeature'`.
 
-## Security & Configuration Tips
-- Do not commit secrets (e.g., `DASHSCOPE_API_KEY`). Prefer environment variables or local overrides.
-- If changing database schemas, update `resources/db/schema.sql` and note it in docs.
+## Docs & References
+- Start with `PROJECT_README.md`, `QUICKSTART.md`, and `PROGRESS.md` for onboarding.
+- Feature requirements and designs live in `docs/`.

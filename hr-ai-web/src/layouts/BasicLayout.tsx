@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Layout, Menu, Button, Space, Avatar, Input } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Layout, Menu, Button, Space, Avatar, Input, type MenuProps } from 'antd';
 import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
@@ -19,19 +19,55 @@ import { logoutApi } from '@/services/auth';
 
 const { Header, Sider, Content } = Layout;
 
+const getMenuState = (pathname: string) => {
+    if (pathname.startsWith('/org/units')) {
+        return { selectedKeys: ['/org/units'], openKeys: ['/org'] };
+    }
+    if (pathname.startsWith('/org/users')) {
+        return { selectedKeys: ['/org/users'], openKeys: ['/org'] };
+    }
+    if (pathname.startsWith('/org/roles')) {
+        return { selectedKeys: ['/org/roles'], openKeys: ['/org'] };
+    }
+    if (pathname.startsWith('/org/audit')) {
+        return { selectedKeys: ['/org/audit'], openKeys: ['/org'] };
+    }
+    if (pathname.startsWith('/org')) {
+        return { selectedKeys: ['/org/units'], openKeys: ['/org'] };
+    }
+    const rootKey = pathname === '/' ? '/' : `/${pathname.split('/')[1]}`;
+    return { selectedKeys: [rootKey], openKeys: [] };
+};
+
 const BasicLayout: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuthStore();
+    const menuState = useMemo(() => getMenuState(location.pathname), [location.pathname]);
+    const [openKeys, setOpenKeys] = useState<string[]>(menuState.openKeys);
 
-    const handleMenuClick = (info: any) => {
-        navigate(info.key);
+    const handleMenuClick: MenuProps['onClick'] = (info) => {
+        navigate(String(info.key));
     };
 
-    const menuItems = [
+    useEffect(() => {
+        setOpenKeys(menuState.openKeys);
+    }, [menuState]);
+
+    const menuItems: MenuProps['items'] = [
         { key: '/', icon: <DashboardOutlined />, label: '工作台' },
-        { key: '/org', icon: <TeamOutlined />, label: '组织架构' },
+        {
+            key: '/org',
+            icon: <TeamOutlined />,
+            label: '组织与权限',
+            children: [
+                { key: '/org/units', label: '组织架构' },
+                { key: '/org/users', label: '用户管理' },
+                { key: '/org/roles', label: '角色管理' },
+                { key: '/org/audit', label: '审计日志' },
+            ],
+        },
         { key: '/hr', icon: <UserOutlined />, label: 'Core HR' },
         { key: '/recruiting', icon: <TeamOutlined />, label: '招聘管理' },
         { key: '/attendance', icon: <ScheduleOutlined />, label: '考勤假勤' },
@@ -72,8 +108,9 @@ const BasicLayout: React.FC = () => {
                 <Menu
                     theme="dark"
                     mode="inline"
-                    defaultSelectedKeys={['/']}
-                    selectedKeys={[location.pathname]}
+                    selectedKeys={menuState.selectedKeys}
+                    openKeys={openKeys}
+                    onOpenChange={(keys) => setOpenKeys(keys as string[])}
                     items={menuItems}
                     onClick={handleMenuClick}
                 />
