@@ -11,15 +11,38 @@ spring:
   application:
     name: hr-org-service
 
-  # 禁用 Nacos (本地开发时使用)
+  config:
+    import: "optional:nacos:${spring.application.name}.yaml"
+
+  # Nacos 配置中心与服务发现
   cloud:
     nacos:
       config:
-        enabled: false
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        file-extension: yaml
+        group: DEFAULT_GROUP
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
+        fail-fast: false
         import-check:
-          enabled: false
+          enabled: true
+        # 共享配置
+        shared-configs:
+          - data-id: hr-ai-common.yaml
+            refresh: true
+          - data-id: application-database.yaml
+            refresh: false
+          - data-id: application-redis.yaml
+            refresh: false
+          - data-id: application-jwt.yaml
+            refresh: false
       discovery:
-        enabled: false
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        group: DEFAULT_GROUP
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
 
   # 数据源配置
   datasource:
