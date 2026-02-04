@@ -4,13 +4,70 @@
 -- ============================================
 -- 初始化角色
 -- ============================================
-INSERT INTO `sys_role` (`tenant_id`, `name`, `code`, `description`, `permissions`, `data_scope`, `status`, `sort_order`)
+INSERT INTO `sys_role` (`tenant_id`, `name`, `code`, `description`, `data_scope`, `status`, `sort_order`)
 VALUES
-    ('tenant_default', '超级管理员', 'super_admin', '系统超级管理员，拥有所有权限', '["*"]', 1, 1, 1),
-    ('tenant_default', '租户管理员', 'tenant_admin', '租户管理员，管理租户内所有资源', '["user:*", "role:*", "org:*", "agent:*", "knowledge:*"]', 1, 1, 2),
-    ('tenant_default', 'HR 专员', 'hr_specialist', 'HR 专员，使用 HR 相关功能', '["user:read", "agent:use", "knowledge:read"]', 3, 1, 3),
-    ('tenant_default', '普通用户', 'user', '普通用户，基本使用权限', '["agent:use", "chat:use"]', 4, 1, 4)
+    ('tenant_default', '超级管理员', 'super_admin', '系统超级管理员，拥有所有权限', 1, 1, 1),
+    ('tenant_default', '租户管理员', 'tenant_admin', '租户管理员，管理租户内所有资源', 1, 1, 2),
+    ('tenant_default', 'HR 专员', 'hr_specialist', 'HR 专员，使用 HR 相关功能', 3, 1, 3),
+    ('tenant_default', '普通用户', 'user', '普通用户，基本使用权限', 4, 1, 4)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+
+-- ============================================
+-- 初始化菜单/页面权限
+-- ============================================
+INSERT INTO `sys_menu` (`tenant_id`, `parent_id`, `name`, `type`, `path`, `permission_code`, `status`, `sort_order`)
+VALUES
+    ('tenant_default', 0, '全部权限', 'ACTION', NULL, '*', 1, 1),
+    ('tenant_default', 0, '组织与权限', 'MENU', '/org', 'org:*', 1, 10),
+    ('tenant_default', 0, '组织架构', 'PAGE', '/org/units', 'org:unit:read', 1, 11),
+    ('tenant_default', 0, '组织架构-编辑', 'ACTION', NULL, 'org:unit:write', 1, 12),
+    ('tenant_default', 0, '用户管理', 'PAGE', '/org/users', 'org:user:read', 1, 20),
+    ('tenant_default', 0, '用户管理-编辑', 'ACTION', NULL, 'org:user:write', 1, 21),
+    ('tenant_default', 0, '用户管理-查看(通用)', 'ACTION', NULL, 'user:read', 1, 22),
+    ('tenant_default', 0, '角色管理', 'PAGE', '/org/roles', 'org:role:read', 1, 30),
+    ('tenant_default', 0, '角色管理-编辑', 'ACTION', NULL, 'org:role:write', 1, 31),
+    ('tenant_default', 0, '审计日志', 'PAGE', '/org/audit', 'org:audit:read', 1, 40),
+    ('tenant_default', 0, '岗位管理-查看', 'ACTION', NULL, 'hr:position:read', 1, 50),
+    ('tenant_default', 0, '岗位管理-编辑', 'ACTION', NULL, 'hr:position:write', 1, 51),
+    ('tenant_default', 0, '编制管理-查看', 'ACTION', NULL, 'hr:headcount:read', 1, 52),
+    ('tenant_default', 0, '编制管理-编辑', 'ACTION', NULL, 'hr:headcount:write', 1, 53),
+    ('tenant_default', 0, '员工管理-查看', 'ACTION', NULL, 'hr:employee:read', 1, 54),
+    ('tenant_default', 0, '员工管理-编辑', 'ACTION', NULL, 'hr:employee:write', 1, 55),
+    ('tenant_default', 0, '人事事件-查看', 'ACTION', NULL, 'hr:event:read', 1, 56),
+    ('tenant_default', 0, '人事事件-编辑', 'ACTION', NULL, 'hr:event:write', 1, 57),
+    ('tenant_default', 0, '人事事件-审批', 'ACTION', NULL, 'hr:event:approve', 1, 58),
+    ('tenant_default', 0, 'AI 能力中心', 'PAGE', '/ai', 'agent:use', 1, 60),
+    ('tenant_default', 0, 'AI 能力中心-管理', 'ACTION', NULL, 'agent:*', 1, 61),
+    ('tenant_default', 0, '知识库-管理', 'ACTION', NULL, 'knowledge:*', 1, 70),
+    ('tenant_default', 0, '知识库-查看', 'ACTION', NULL, 'knowledge:read', 1, 71),
+    ('tenant_default', 0, '知识库-编辑', 'ACTION', NULL, 'knowledge:write', 1, 72),
+    ('tenant_default', 0, '聊天使用', 'ACTION', NULL, 'chat:use', 1, 80),
+    ('tenant_default', 0, '用户模块-管理', 'ACTION', NULL, 'user:*', 1, 90),
+    ('tenant_default', 0, '角色模块-管理', 'ACTION', NULL, 'role:*', 1, 91)
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `type` = VALUES(`type`), `path` = VALUES(`path`),
+    `status` = VALUES(`status`), `sort_order` = VALUES(`sort_order`);
+
+-- ============================================
+-- 初始化角色权限关联
+-- ============================================
+INSERT INTO `sys_role_permission` (`tenant_id`, `role_id`, `permission_code`)
+SELECT 'tenant_default', r.id, rp.permission_code
+FROM `sys_role` r
+JOIN (
+    SELECT 'super_admin' AS role_code, '*' AS permission_code
+    UNION ALL SELECT 'tenant_admin', 'user:*'
+    UNION ALL SELECT 'tenant_admin', 'role:*'
+    UNION ALL SELECT 'tenant_admin', 'org:*'
+    UNION ALL SELECT 'tenant_admin', 'agent:*'
+    UNION ALL SELECT 'tenant_admin', 'knowledge:*'
+    UNION ALL SELECT 'hr_specialist', 'user:read'
+    UNION ALL SELECT 'hr_specialist', 'agent:use'
+    UNION ALL SELECT 'hr_specialist', 'knowledge:read'
+    UNION ALL SELECT 'user', 'agent:use'
+    UNION ALL SELECT 'user', 'chat:use'
+) rp ON r.code = rp.role_code
+WHERE r.tenant_id = 'tenant_default' AND r.deleted = 0
+ON DUPLICATE KEY UPDATE `permission_code` = VALUES(`permission_code`);
 
 -- ============================================
 -- 初始化组织架构

@@ -53,6 +53,43 @@ CREATE TABLE IF NOT EXISTS `sys_role` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统角色表';
 
 -- ============================================
+-- 系统菜单/页面表
+-- ============================================
+CREATE TABLE IF NOT EXISTS `sys_menu` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `tenant_id` VARCHAR(64) NOT NULL DEFAULT 'tenant_default' COMMENT '租户ID',
+    `parent_id` BIGINT NOT NULL DEFAULT 0 COMMENT '父级ID（0表示顶级）',
+    `name` VARCHAR(128) NOT NULL COMMENT '名称',
+    `type` VARCHAR(16) NOT NULL DEFAULT 'PAGE' COMMENT '类型: MENU/PAGE/ACTION',
+    `path` VARCHAR(256) DEFAULT NULL COMMENT '路由路径',
+    `permission_code` VARCHAR(128) DEFAULT NULL COMMENT '权限编码',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0=禁用, 1=启用',
+    `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0=正常, 1=已删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_tenant_permission` (`tenant_id`, `permission_code`, `deleted`),
+    KEY `idx_tenant_id` (`tenant_id`),
+    KEY `idx_parent_id` (`parent_id`),
+    KEY `idx_permission_code` (`permission_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统菜单/页面表';
+
+-- ============================================
+-- 角色权限关联表
+-- ============================================
+CREATE TABLE IF NOT EXISTS `sys_role_permission` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `tenant_id` VARCHAR(64) NOT NULL DEFAULT 'tenant_default' COMMENT '租户ID',
+    `role_id` BIGINT NOT NULL COMMENT '角色ID',
+    `permission_code` VARCHAR(128) NOT NULL COMMENT '权限编码',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_role_permission` (`tenant_id`, `role_id`, `permission_code`),
+    KEY `idx_role_id` (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限关联表';
+
+-- ============================================
 -- 组织单元表（部门/公司/团队）
 -- ============================================
 CREATE TABLE IF NOT EXISTS `org_unit` (

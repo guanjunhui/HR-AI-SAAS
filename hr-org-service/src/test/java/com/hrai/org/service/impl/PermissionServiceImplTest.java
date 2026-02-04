@@ -1,9 +1,12 @@
 package com.hrai.org.service.impl;
 
 import com.hrai.common.context.TenantContext;
+import com.hrai.org.entity.SysMenu;
 import com.hrai.org.entity.SysRole;
 import com.hrai.org.entity.SysUser;
+import com.hrai.org.mapper.SysMenuMapper;
 import com.hrai.org.mapper.SysRoleMapper;
+import com.hrai.org.mapper.SysRolePermissionMapper;
 import com.hrai.org.mapper.SysUserMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +31,12 @@ class PermissionServiceImplTest {
 
     @Mock
     private SysRoleMapper roleMapper;
+
+    @Mock
+    private SysMenuMapper menuMapper;
+
+    @Mock
+    private SysRolePermissionMapper rolePermissionMapper;
 
     @InjectMocks
     private PermissionServiceImpl permissionService;
@@ -60,10 +69,11 @@ class PermissionServiceImplTest {
         role.setTenantId("tenant_test");
         role.setStatus(1);
         role.setDeleted(0);
-        role.setPermissions("[\"hr:*\"]");
 
         when(userMapper.selectById(eq(1L))).thenReturn(user);
         when(roleMapper.selectById(eq(10L))).thenReturn(role);
+        when(rolePermissionMapper.selectCodesByRoleId(eq("tenant_test"), eq(10L)))
+                .thenReturn(List.of("hr:*"));
 
         boolean allowed = permissionService.checkPermission(1L, "hr:employee:read");
 
@@ -71,14 +81,13 @@ class PermissionServiceImplTest {
     }
 
     @Test
-    void listPermissions_includesRolePermissions() {
-        SysRole role = new SysRole();
-        role.setId(2L);
-        role.setTenantId("tenant_test");
-        role.setPermissions("[\"custom:read\"]");
-        role.setDeleted(0);
+    void listPermissions_includesMenuPermissions() {
+        SysMenu menu = new SysMenu();
+        menu.setPermissionCode("custom:read");
+        SysMenu menu2 = new SysMenu();
+        menu2.setPermissionCode("org:unit:read");
 
-        when(roleMapper.selectList(any())).thenReturn(List.of(role));
+        when(menuMapper.selectList(any())).thenReturn(List.of(menu, menu2));
 
         List<String> permissions = permissionService.listPermissions();
 

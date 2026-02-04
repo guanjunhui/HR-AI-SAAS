@@ -1,19 +1,21 @@
 package com.hrai.org.service.impl;
 
-import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.hrai.common.constant.TenantConstants;
 import com.hrai.common.context.TenantContext;
+import com.hrai.org.entity.SysMenu;
 import com.hrai.org.entity.SysRole;
 import com.hrai.org.entity.SysUser;
+import com.hrai.org.mapper.SysMenuMapper;
 import com.hrai.org.mapper.SysRoleMapper;
+import com.hrai.org.mapper.SysRolePermissionMapper;
 import com.hrai.org.mapper.SysUserMapper;
 import com.hrai.org.service.PermissionService;
-import com.hrai.org.util.PermissionCatalog;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -26,24 +28,32 @@ public class PermissionServiceImpl implements PermissionService {
 
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
+    private final SysMenuMapper menuMapper;
+    private final SysRolePermissionMapper rolePermissionMapper;
 
-    public PermissionServiceImpl(SysUserMapper userMapper, SysRoleMapper roleMapper) {
+    public PermissionServiceImpl(SysUserMapper userMapper,
+                                 SysRoleMapper roleMapper,
+                                 SysMenuMapper menuMapper,
+                                 SysRolePermissionMapper rolePermissionMapper) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
+        this.menuMapper = menuMapper;
+        this.rolePermissionMapper = rolePermissionMapper;
     }
 
     @Override
     public List<String> listPermissions() {
         String tenantId = resolveTenantId();
-        Set<String> codes = PermissionCatalog.defaultCodes();
-
-        QueryWrapper<SysRole> wrapper = new QueryWrapper<>();
+        Set<String> codes = new LinkedHashSet<>();
+        QueryWrapper<SysMenu> wrapper = new QueryWrapper<>();
         wrapper.eq("tenant_id", tenantId).eq("deleted", 0);
-        List<SysRole> roles = roleMapper.selectList(wrapper);
-        if (roles != null) {
-            for (SysRole role : roles) {
-                List<String> rolePerms = parsePermissions(role.getPermissions());
-                codes.addAll(rolePerms);
+        List<SysMenu> menus = menuMapper.selectList(wrapper);
+        if (menus != null) {
+            for (SysMenu menu : menus) {
+                String code = menu.getPermissionCode();
+                if (code != null && !code.isBlank()) {
+                    codes.add(code.trim());
+                }
             }
         }
 
@@ -77,24 +87,16 @@ public class PermissionServiceImpl implements PermissionService {
             return false;
         }
 
-        List<String> permissions = parsePermissions(role.getPermissions());
+        List<String> permissions = rolePermissionMapper.selectCodesByRoleId(tenantId, role.getId());
+        if (permissions == null || permissions.isEmpty()) {
+            return false;
+        }
         for (String granted : permissions) {
             if (matchPermission(granted, permission)) {
                 return true;
             }
         }
         return false;
-    }
-
-    private List<String> parsePermissions(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return Collections.emptyList();
-        }
-        try {
-            return JSON.parseArray(raw, String.class);
-        } catch (Exception ex) {
-            return Collections.emptyList();
-        }
     }
 
     private boolean matchPermission(String granted, String required) {

@@ -11,6 +11,32 @@
 
 ## 2026-02-04
 范围：M01 组织与权限（`hr-org-service`）。
+概要：移除权限硬编码，改为从数据库菜单/权限关系表读取；新增菜单与角色权限表及迁移脚本；更新角色权限写入逻辑并补齐单测。
+
+新增文件：
+- `hr-org-service/src/main/java/com/hrai/org/entity/SysMenu.java`
+- `hr-org-service/src/main/java/com/hrai/org/entity/SysRolePermission.java`
+- `hr-org-service/src/main/java/com/hrai/org/mapper/SysMenuMapper.java`
+- `hr-org-service/src/main/java/com/hrai/org/mapper/SysRolePermissionMapper.java`
+- `hr-org-service/src/main/resources/db/migrate-role-permissions.sql`
+
+修改文件：
+- `hr-org-service/src/main/java/com/hrai/org/service/impl/PermissionServiceImpl.java`
+- `hr-org-service/src/main/java/com/hrai/org/service/impl/RoleServiceImpl.java`
+- `hr-org-service/src/main/resources/db/schema-org.sql`
+- `hr-org-service/src/main/resources/db/init-org-data.sql`
+- `hr-org-service/src/test/java/com/hrai/org/service/impl/PermissionServiceImplTest.java`
+- `hr-org-service/src/test/java/com/hrai/org/service/impl/RoleServiceImplTest.java`
+
+删除文件：
+- `hr-org-service/src/main/java/com/hrai/org/util/PermissionCatalog.java`
+
+测试：
+- `mvn -q test`
+- `mvn -q -DskipTests=true package`
+
+## 2026-02-04
+范围：M01 组织与权限（`hr-org-service`）。
 概要：修复 JDBC 连接编码配置为 `UTF-8`，避免 `utf8mb4` 触发的 UnsupportedEncodingException。
 
 修改文件：
