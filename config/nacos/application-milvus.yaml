@@ -1,0 +1,23 @@
+# Milvus 向量数据库配置 (P2)
+# Nacos Data ID: application-milvus.yaml
+# Group: DEFAULT_GROUP
+# 不支持动态刷新
+
+milvus:
+  host: ${MILVUS_HOST:localhost}
+  port: ${MILVUS_PORT:19530}
+  username: ${MILVUS_USERNAME:}
+  password: ${MILVUS_PASSWORD:}
+  collections:
+    knowledge:
+      name: hr_knowledge
+      dimension: 768
+      index-type: IVF_FLAT
+      metric-type: COSINE
+      description: HR 知识库向量存储
+    memory:
+      name: user_memory
+      dimension: 768
+      index-type: IVF_FLAT
+      metric-type: COSINE
+      description: 用户长期记忆向量存储

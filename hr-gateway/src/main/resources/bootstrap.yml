@@ -1,3 +1,5 @@
+# Bootstrap 配置 - 网关 Nacos 配置中心与服务发现
+
 spring:
   application:
     name: hr-gateway
@@ -6,18 +8,28 @@ spring:
     nacos:
       # 配置中心
       config:
-        server-addr: localhost:8848
-        namespace: public
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
         file-extension: yaml
         group: DEFAULT_GROUP
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
+        fail-fast: false
         # 共享配置
         shared-configs:
-          - data-id: common.yaml
-            group: DEFAULT_GROUP
+          - data-id: hr-ai-common.yaml
+            refresh: true
+          - data-id: hr-gateway.yaml
+            refresh: true
+          - data-id: application-jwt.yaml
+            refresh: false
+          - data-id: application-sentinel.yaml
             refresh: true
 
       # 服务发现
       discovery:
-        server-addr: localhost:8848
-        namespace: public
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
         group: DEFAULT_GROUP
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}

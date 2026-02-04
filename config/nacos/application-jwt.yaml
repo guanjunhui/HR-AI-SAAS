@@ -1,0 +1,10 @@
+# JWT 认证配置 (P0 - 敏感配置)
+# Nacos Data ID: application-jwt.yaml
+# Group: DEFAULT_GROUP
+# 不支持动态刷新
+
+jwt:
+  secret: ${JWT_SECRET:hr-ai-saas-jwt-secret-key-must-be-at-least-32-characters-long}
+  expiration: 28800000
+  issuer: hr-ai-saas
+  refresh-expiration: 604800000

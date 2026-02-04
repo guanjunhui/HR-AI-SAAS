@@ -1,0 +1,11 @@
+[
+  {
+    "resource": "hr-ai-agent-core",
+    "grade": 0,
+    "count": 5000,
+    "timeWindow": 10,
+    "minRequestAmount": 5,
+    "statIntervalMs": 1000,
+    "slowRatioThreshold": 0.5
+  }
+]

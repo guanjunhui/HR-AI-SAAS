@@ -1,0 +1,28 @@
+# 通用配置 - 所有服务共享
+# Nacos Data ID: hr-ai-common.yaml
+# Group: DEFAULT_GROUP
+# 支持动态刷新
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.hrai: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,refresh
+  endpoint:
+    health:
+      show-details: when_authorized
+    refresh:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true

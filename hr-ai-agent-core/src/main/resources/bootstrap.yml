@@ -16,10 +16,28 @@ spring:
         # 启用认证 (Nacos 3.x 默认开启)
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:nacos}
-        # 共享配置 (多应用共享)
+        # 配置中心失败不阻塞启动（兜底到本地配置）
+        fail-fast: false
+
+        # 共享配置（按加载顺序）
         shared-configs:
           - data-id: hr-ai-common.yaml
-            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: application-database.yaml
+            refresh: false
+          - data-id: application-redis.yaml
+            refresh: false
+          - data-id: application-kafka.yaml
+            refresh: true
+          - data-id: application-milvus.yaml
+            refresh: false
+          - data-id: application-ai.yaml
+            refresh: true
+          - data-id: application-jwt.yaml
+            refresh: false
+          - data-id: application-sentinel.yaml
+            refresh: true
+          - data-id: agent-config.yaml
             refresh: true
 
       # Nacos 服务发现

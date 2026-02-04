@@ -1,0 +1,77 @@
+# AI 模型配置 (P1)
+# Nacos Data ID: application-ai.yaml
+# Group: DEFAULT_GROUP
+# 支持动态刷新
+
+spring:
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:sk-your-api-key}
+      chat:
+        options:
+          model: ${AI_MODEL:qwen-plus}
+          temperature: ${AI_TEMPERATURE:0.7}
+          top-p: 0.8
+          max-tokens: ${AI_MAX_TOKENS:2000}
+      embedding:
+        options:
+          model: text-embedding-v2
+    vectorstore:
+      milvus:
+        host: ${MILVUS_HOST:localhost}
+        port: ${MILVUS_PORT:19530}
+        collection-name: hr_knowledge
+        embedding-dimension: 768
+        index-type: IVF_FLAT
+        metric-type: COSINE
+    alibaba:
+      mcp:
+        nacos:
+          server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+          namespace: ${NACOS_NAMESPACE:public}
+          group: MCP_GROUP
+          username: ${NACOS_USERNAME:nacos}
+          password: ${NACOS_PASSWORD:nacos}
+          server:
+            enabled: true
+            name: hr-ai-mcp-server
+            description: HR AI Agent 工具服务
+          client:
+            enabled: true
+            external-servers: []
+      a2a:
+        server:
+          enabled: true
+          name: hr-ai-agent
+          description: HR AI SaaS 主 Agent 服务
+          skills:
+            - name: hr-policy
+              description: HR 政策咨询
+            - name: recruiting
+              description: 招聘流程管理
+            - name: ticket-routing
+              description: 工单路由分发
+          nacos:
+            discovery:
+              enabled: true
+              server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+              namespace: ${NACOS_NAMESPACE:public}
+              group: A2A_GROUP
+
+agent:
+  default:
+    max-iterations: ${AGENT_MAX_ITERATIONS:5}
+    temperature: 0.7
+    max-tokens: 2000
+  rag:
+    top-k: ${AGENT_RAG_TOP_K:5}
+    score-threshold: ${AGENT_RAG_THRESHOLD:0.6}
+    chunk-size: 500
+    chunk-overlap: 50
+  memory:
+    short-term:
+      max-history: 10
+      ttl: 3600
+    long-term:
+      enabled: true
+      vector-store: true

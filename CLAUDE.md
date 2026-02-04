@@ -7,11 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 HR AI SaaS - 基于 Spring AI Alibaba 的多 Agent 协作系统，用于构建智能 HR 助手 SaaS 产品。
 
 **技术栈核心**：
-- Java 17 + Spring Boot 3.2.2 + Spring Cloud 2023.0.0 + Spring Cloud Alibaba 2023.0.1.0
-- Spring AI Alibaba 1.1.0.0-RC2（通义千问 + Agent Framework + Graph）
-- 后端：Spring Cloud Gateway + Spring Security + MyBatis Plus + Druid + Redisson
+- Java 17 + Spring Boot 3.3.6 + Spring Cloud 2023.0.3 + Spring Cloud Alibaba 2023.0.3.2
+- Spring AI Alibaba 1.1.2.0（通义千问 + Agent Framework + Graph）
+- 后端：Spring Cloud Gateway + Spring Security + MyBatis Plus + Druid + Redisson + Sentinel 1.8.8
 - 存储：MySQL 8.0 + Redis + Milvus 2.5.4（向量库）+ Kafka（消息队列）
-- 服务治理：Nacos 3.x（配置中心 + MCP 注册发现 + A2A）
+- 服务治理：Nacos 3.1（配置中心 + MCP 注册发现 + A2A + Sentinel 规则存储）
 - 前端：React 19 + Ant Design 5 + Vite 7 + TypeScript 5
 - Maven 多模块架构（hr-ai-common, hr-ai-agent-core, hr-gateway, hr-org-service）
 

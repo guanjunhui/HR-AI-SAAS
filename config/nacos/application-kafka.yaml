@@ -1,0 +1,63 @@
+# Kafka 消息队列配置 (P1)
+# Nacos Data ID: application-kafka.yaml
+# Group: DEFAULT_GROUP
+# 支持动态刷新
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 3
+      batch-size: 16384
+      buffer-memory: 33554432
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      group-id: hr-ai-agent-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.hrai.*
+        max.poll.records: 100
+    listener:
+      ack-mode: manual_immediate
+      concurrency: 3
+
+kafka:
+  topics:
+    agent-task:
+      name: agent-task
+      partitions: 3
+      replicas: 1
+      retention-ms: 604800000
+    workflow-event:
+      name: workflow-event
+      partitions: 3
+      replicas: 1
+      retention-ms: 259200000
+    conversation-history:
+      name: conversation-history
+      partitions: 6
+      replicas: 1
+      retention-ms: 2592000000
+    knowledge-update:
+      name: knowledge-update
+      partitions: 3
+      replicas: 1
+      retention-ms: 604800000
+    a2a-task-delegation:
+      name: a2a-task-delegation
+      partitions: 3
+      replicas: 1
+      retention-ms: 86400000
+    mcp-tool-invocation:
+      name: mcp-tool-invocation
+      partitions: 3
+      replicas: 1
+      retention-ms: 86400000

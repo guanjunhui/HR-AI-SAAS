@@ -1,0 +1,26 @@
+# Sentinel 限流熔断配置 (P1)
+# Nacos Data ID: application-sentinel.yaml
+# Group: DEFAULT_GROUP
+# 支持动态刷新
+
+spring:
+  cloud:
+    sentinel:
+      transport:
+        dashboard: localhost:8858
+        port: 8719
+      datasource:
+        flow-rules:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+            namespace: ${NACOS_NAMESPACE:public}
+            group-id: SENTINEL_GROUP
+            data-id: sentinel-flow-rules.json
+            rule-type: flow
+        degrade-rules:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+            namespace: ${NACOS_NAMESPACE:public}
+            group-id: SENTINEL_GROUP
+            data-id: sentinel-degrade-rules.json
+            rule-type: degrade

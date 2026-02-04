@@ -1,0 +1,42 @@
+# 网关路由配置 (P1)
+# Nacos Data ID: hr-gateway.yaml
+# Group: DEFAULT_GROUP
+# 支持动态刷新
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        # 组织鉴权服务
+        - id: hr-org-service
+          uri: lb://hr-org-service
+          predicates:
+            - Path=/api/v1/auth/**, /api/v1/org/**, /api/v1/user/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@tenantKeyResolver}"
+                redis-rate-limiter:
+                  replenishRate: 50
+                  burstCapacity: 100
+
+        # Agent 核心服务
+        - id: hr-ai-agent-core
+          uri: lb://hr-ai-agent-core
+          predicates:
+            - Path=/api/v1/agent/**, /api/v1/chat/**, /api/v1/knowledge/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@tenantKeyResolver}"
+                redis-rate-limiter:
+                  replenishRate: 20
+                  burstCapacity: 50
+
+        # 健康检查
+        - id: health-check
+          uri: no://op
+          predicates:
+            - Path=/health/**
+          filters:
+            - SetStatus=200

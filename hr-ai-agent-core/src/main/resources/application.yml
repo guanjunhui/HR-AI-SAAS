@@ -7,13 +7,13 @@ spring:
   application:
     name: hr-ai-agent-core
 
-  # 数据源配置
+  # 本地兜底数据源配置（Nacos 配置中心加载后覆盖）
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/hr_ai_saas?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: hr_ai_2025  # Docker Compose 默认密码
+    password: ${DB_PASSWORD:hr_ai_2025}
     druid:
       initial-size: 5
       min-idle: 5
@@ -26,7 +26,7 @@ spring:
       time-between-eviction-runs-millis: 60000
       min-evictable-idle-time-millis: 300000
 
-  # ========== Kafka 消息队列 ==========
+  # Kafka 消息队列（本地兜底）
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     producer:
@@ -71,23 +71,19 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
-  # ========== Spring AI Alibaba 配置 ==========
+  # Spring AI Alibaba 配置（本地兜底）
   ai:
     dashscope:
       api-key: ${DASHSCOPE_API_KEY:sk-your-api-key}
-      # 聊天模型配置
       chat:
         options:
-          model: qwen-plus  # 可选: qwen-turbo, qwen-plus, qwen-max
+          model: qwen-plus
           temperature: 0.7
           top-p: 0.8
           max-tokens: 2000
-      # 嵌入模型配置
       embedding:
         options:
-          model: text-embedding-v2  # 768维向量
-
-    # Milvus 向量存储 (Spring AI 集成)
+          model: text-embedding-v2
     vectorstore:
       milvus:
         host: ${MILVUS_HOST:localhost}
@@ -96,8 +92,6 @@ spring:
         embedding-dimension: 768
         index-type: IVF_FLAT
         metric-type: COSINE
-
-    # ========== MCP 配置 - 工具动态注册与发现 ==========
     alibaba:
       mcp:
         nacos:
@@ -106,18 +100,13 @@ spring:
           group: MCP_GROUP
           username: ${NACOS_USERNAME:nacos}
           password: ${NACOS_PASSWORD:nacos}
-          # MCP Server - 工具注册
           server:
             enabled: true
             name: hr-ai-mcp-server
             description: HR AI Agent 工具服务
-          # MCP Client - 外部工具发现
           client:
             enabled: true
-            # 外部 MCP Server 接入 (IDE 插件、浏览器扩展等)
             external-servers: []
-
-      # ========== A2A 协议 - Agent 间任务委派 ==========
       a2a:
         server:
           enabled: true
@@ -130,12 +119,27 @@ spring:
               description: 招聘流程管理
             - name: ticket-routing
               description: 工单路由分发
-        nacos:
-          discovery:
-            enabled: true
-            server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
-            namespace: ${NACOS_NAMESPACE:public}
-            group: A2A_GROUP
+          nacos:
+            discovery:
+              enabled: true
+              server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+              namespace: ${NACOS_NAMESPACE:public}
+              group: A2A_GROUP
+
+  cloud:
+    # Nacos（本地开发可禁用）
+    nacos:
+      config:
+        enabled: false
+        import-check:
+          enabled: false
+      discovery:
+        enabled: false
+    # Sentinel 限流（本地兜底配置）
+    sentinel:
+      transport:
+        dashboard: localhost:8858
+        port: 8719
 
 # MyBatis Plus 配置
 mybatis-plus:
@@ -144,18 +148,17 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
-      logic-delete-field: deleted  # 逻辑删除字段
+      logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
   mapper-locations: classpath*:/mapper/**/*.xml
 
-# ========== Milvus 向量数据库配置 (原生 SDK) ==========
+# Milvus 向量数据库配置 (原生 SDK)
 milvus:
   host: ${MILVUS_HOST:localhost}
   port: ${MILVUS_PORT:19530}
   username: ${MILVUS_USERNAME:}
   password: ${MILVUS_PASSWORD:}
-  # Collection 定义
   collections:
     knowledge:
       name: hr_knowledge
@@ -170,37 +173,36 @@ milvus:
       metric-type: COSINE
       description: 用户长期记忆向量存储
 
-# Agent 配置
+# Agent 配置（本地兜底）
 agent:
-  # 默认配置
   default:
-    max-iterations: 5  # ReAct 最大迭代次数
+    max-iterations: 5
     temperature: 0.7
     max-tokens: 2000
-  # RAG 配置
   rag:
-    top-k: 5  # 检索Top K文档
-    score-threshold: 0.6  # 相似度阈值
-    chunk-size: 500  # 文档分块大小
-    chunk-overlap: 50  # 分块重叠
-  # 记忆配置
+    top-k: 5
+    score-threshold: 0.6
+    chunk-size: 500
+    chunk-overlap: 50
   memory:
     short-term:
-      max-history: 10  # 最多保存10轮对话
-      ttl: 3600  # 1小时过期 (秒)
+      max-history: 10
+      ttl: 3600
     long-term:
       enabled: true
-      vector-store: true  # 是否向量化存储
+      vector-store: true
 
 # Actuator 健康检查配置
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,refresh
   endpoint:
     health:
       show-details: always
+    refresh:
+      enabled: true
   metrics:
     export:
       prometheus:
