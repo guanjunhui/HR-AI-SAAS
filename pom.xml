@@ -18,6 +18,7 @@
         <module>hr-ai-agent-core</module>
         <module>hr-gateway</module>
         <module>hr-org-service</module>
+        <module>hr-business-service</module>
     </modules>
 
     <properties>
