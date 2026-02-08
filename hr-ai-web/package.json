@@ -7,7 +7,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty false",
+    "test": "node scripts/run-unit-tests.mjs",
+    "test:node": "node --test \"tests/**/*.test.mjs\"",
+    "test:coverage": "node scripts/run-unit-tests.mjs --coverage",
+    "test:e2e": "node scripts/run-e2e-tests.mjs",
+    "contract:test": "node scripts/run-contract-tests.mjs",
+    "consistency:check": "node scripts/check-data-consistency.mjs",
+    "openapi:sync": "bash scripts/sync-openapi-to-wiki.sh",
+    "quality:gate": "node scripts/quality-gate.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",

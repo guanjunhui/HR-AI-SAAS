@@ -20,6 +20,19 @@ spring:
                   replenishRate: 50
                   burstCapacity: 100
 
+        # HR 业务服务（Core HR + AI 业务域）
+        - id: hr-business-service
+          uri: lb://hr-business-service
+          predicates:
+            - Path=/api/v1/hr/**, /api/v1/onboarding/**, /api/v1/recruiting/**, /api/v1/performance/**, /api/v1/ai/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@tenantKeyResolver}"
+                redis-rate-limiter:
+                  replenishRate: 40
+                  burstCapacity: 80
+
         # Agent 核心服务
         - id: hr-ai-agent-core
           uri: lb://hr-ai-agent-core

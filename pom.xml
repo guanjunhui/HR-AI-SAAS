@@ -67,6 +67,9 @@
 
         <!-- 监控 -->
         <micrometer.version>1.12.2</micrometer.version>
+        
+        <!-- EasyExcel -->
+        <easyexcel.version>3.3.3</easyexcel.version>
     </properties>
 
     <dependencyManagement>
@@ -185,6 +188,13 @@
                 <groupId>com.alibaba.fastjson2</groupId>
                 <artifactId>fastjson2</artifactId>
                 <version>${fastjson2.version}</version>
+            </dependency>
+
+            <!-- EasyExcel -->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>easyexcel</artifactId>
+                <version>${easyexcel.version}</version>
             </dependency>
 
             <!-- JJWT (JWT 认证) -->

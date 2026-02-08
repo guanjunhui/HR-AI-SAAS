@@ -45,4 +45,15 @@ public interface EmploymentEventService {
      * 删除任职事件（仅草稿状态可删除）
      */
     void delete(Long id);
+
+    /**
+     * 批量导入任职事件
+     * @param file Excel文件
+     */
+    void importEvents(org.springframework.web.multipart.MultipartFile file);
+
+    /**
+     * 获取任职事件统计数据
+     */
+    com.hrai.business.dto.employmentevent.EmploymentEventStatisticsDTO getStatistics();
 }

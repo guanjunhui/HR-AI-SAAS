@@ -45,7 +45,7 @@ public class PositionController {
      * 根据ID获取岗位详情
      */
     @GetMapping("/{id}")
-    public Result<PositionDetailResponse> getById(@PathVariable Long id) {
+    public Result<PositionDetailResponse> getById(@PathVariable("id") Long id) {
         return Result.success(positionService.getById(id));
     }
 
@@ -61,7 +61,7 @@ public class PositionController {
      * 更新岗位
      */
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody @Valid PositionUpdateRequest request) {
+    public Result<Void> update(@PathVariable("id") Long id, @RequestBody @Valid PositionUpdateRequest request) {
         positionService.update(id, request);
         return Result.success();
     }
@@ -70,7 +70,7 @@ public class PositionController {
      * 删除岗位
      */
     @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id) {
+    public Result<Void> delete(@PathVariable("id") Long id) {
         positionService.delete(id);
         return Result.success();
     }

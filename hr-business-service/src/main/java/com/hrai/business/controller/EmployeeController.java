@@ -35,7 +35,7 @@ public class EmployeeController {
      * 根据ID获取员工详情
      */
     @GetMapping("/{id}")
-    public Result<EmployeeDetailResponse> getById(@PathVariable Long id) {
+    public Result<EmployeeDetailResponse> getById(@PathVariable("id") Long id) {
         return Result.success(employeeService.getById(id));
     }
 
@@ -51,7 +51,7 @@ public class EmployeeController {
      * 更新员工信息
      */
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody @Valid EmployeeUpdateRequest request) {
+    public Result<Void> update(@PathVariable("id") Long id, @RequestBody @Valid EmployeeUpdateRequest request) {
         employeeService.update(id, request);
         return Result.success();
     }
@@ -60,7 +60,7 @@ public class EmployeeController {
      * 删除员工
      */
     @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id) {
+    public Result<Void> delete(@PathVariable("id") Long id) {
         employeeService.delete(id);
         return Result.success();
     }

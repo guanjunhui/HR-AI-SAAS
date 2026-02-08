@@ -1,0 +1,177 @@
+openapi: 3.0.3
+info:
+  title: hr-business-service API
+  version: 1.3.0
+  description: |
+    hr-ai-web 对接 hr-business-service 的核心接口契约（M02 + AI 四功能闭环）。
+servers:
+  - url: /api
+paths:
+  /v1/hr/positions:
+    get:
+      summary: 岗位列表
+      responses:
+        '200':
+          description: success
+    post:
+      summary: 创建岗位
+      responses:
+        '200':
+          description: success
+  /v1/hr/headcounts:
+    get:
+      summary: 编制列表
+      responses:
+        '200':
+          description: success
+    post:
+      summary: 创建编制
+      responses:
+        '200':
+          description: success
+  /v1/hr/employees:
+    get:
+      summary: 员工列表
+      responses:
+        '200':
+          description: success
+    post:
+      summary: 创建员工
+      responses:
+        '200':
+          description: success
+  /v1/hr/employment-events:
+    get:
+      summary: 任职事件列表
+      responses:
+        '200':
+          description: success
+    post:
+      summary: 创建任职事件
+      responses:
+        '200':
+          description: success
+  /v1/hr/employment-events/{id}/submit:
+    post:
+      summary: 提交任职事件审批
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: success
+  /v1/hr/employment-events/{id}/approve:
+    post:
+      summary: 审批任职事件（通过/驳回）
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - approved
+              properties:
+                approved:
+                  type: boolean
+                rejectReason:
+                  type: string
+      responses:
+        '200':
+          description: success
+  /v1/hr/employment-events/{id}/cancel:
+    post:
+      summary: 取消任职事件
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: success
+  /v1/onboarding/forms/autofill:
+    post:
+      summary: 入职 AI 表单自动补全
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: success
+  /v1/recruiting/candidates/{id}/parse-resume:
+    post:
+      summary: 简历解析
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: success
+  /v1/performance/predictions:
+    get:
+      summary: 绩效预测列表
+      responses:
+        '200':
+          description: success
+  /v1/performance/predictions/{id}/calibrate:
+    post:
+      summary: 绩效预测人工校准
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: success
+  /v1/ai/risk/turnover/dashboard:
+    get:
+      summary: 离职风险看板
+      responses:
+        '200':
+          description: success
+  /v1/ai/risk/turnover/{id}/feedback:
+    post:
+      summary: 离职风险反馈
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: success
+components:
+  schemas:
+    ApiResult:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          nullable: true
+        requestId:
+          type: string
+        timestamp:
+          type: integer

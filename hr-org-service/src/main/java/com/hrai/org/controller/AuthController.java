@@ -1,11 +1,14 @@
 package com.hrai.org.controller;
 
 import cn.hutool.core.util.StrUtil;
+import com.hrai.common.constant.TenantConstants;
 import com.hrai.common.dto.Result;
+import com.hrai.common.exception.BizException;
 import com.hrai.org.dto.LoginRequest;
 import com.hrai.org.dto.LoginResponse;
 import com.hrai.org.dto.RefreshTokenRequest;
 import com.hrai.org.service.AuthService;
+import com.hrai.org.util.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -24,9 +27,11 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
+    private final JwtUtils jwtUtils;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, JwtUtils jwtUtils) {
         this.authService = authService;
+        this.jwtUtils = jwtUtils;
     }
 
     /**
@@ -71,9 +76,31 @@ public class AuthController {
      */
     @GetMapping("/me")
     public Result<LoginResponse.UserInfo> getCurrentUser(
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestHeader("X-Tenant-Id") String tenantId) {
-        LoginResponse.UserInfo userInfo = authService.getCurrentUser(userId, tenantId);
+            @RequestHeader(value = TenantConstants.USER_ID_HEADER, required = false) Long userId,
+            @RequestHeader(value = TenantConstants.TENANT_ID_HEADER, required = false) String tenantId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Long resolvedUserId = userId;
+        String resolvedTenantId = tenantId;
+
+        if ((resolvedUserId == null || StrUtil.isBlank(resolvedTenantId))
+                && StrUtil.isNotBlank(authorization)
+                && authorization.startsWith("Bearer ")) {
+            String token = authorization.substring(7);
+            if (jwtUtils.validateToken(token)) {
+                if (resolvedUserId == null) {
+                    resolvedUserId = jwtUtils.getUserId(token);
+                }
+                if (StrUtil.isBlank(resolvedTenantId)) {
+                    resolvedTenantId = jwtUtils.getTenantId(token);
+                }
+            }
+        }
+
+        if (resolvedUserId == null || StrUtil.isBlank(resolvedTenantId)) {
+            throw new BizException(401, "未登录或登录态已失效");
+        }
+
+        LoginResponse.UserInfo userInfo = authService.getCurrentUser(resolvedUserId, resolvedTenantId);
         return Result.success(userInfo);
     }
 

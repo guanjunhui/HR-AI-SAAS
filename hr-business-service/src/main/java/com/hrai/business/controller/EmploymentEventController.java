@@ -10,6 +10,16 @@ import com.hrai.common.dto.Result;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.multipart.MultipartFile;
+import com.alibaba.excel.EasyExcel;
+import com.hrai.business.dto.employmentevent.EmploymentEventImportDTO;
+import com.hrai.business.dto.employmentevent.EmploymentEventStatisticsDTO;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+
 /**
  * 任职事件管理 Controller
  */
@@ -35,7 +45,7 @@ public class EmploymentEventController {
      * 根据ID获取任职事件详情
      */
     @GetMapping("/{id}")
-    public Result<EmploymentEventDetailResponse> getById(@PathVariable Long id) {
+    public Result<EmploymentEventDetailResponse> getById(@PathVariable("id") Long id) {
         return Result.success(eventService.getById(id));
     }
 
@@ -51,7 +61,7 @@ public class EmploymentEventController {
      * 提交审批
      */
     @PostMapping("/{id}/submit")
-    public Result<Void> submit(@PathVariable Long id) {
+    public Result<Void> submit(@PathVariable("id") Long id) {
         eventService.submit(id);
         return Result.success();
     }
@@ -60,7 +70,7 @@ public class EmploymentEventController {
      * 审批任职事件
      */
     @PostMapping("/{id}/approve")
-    public Result<Void> approve(@PathVariable Long id, @RequestBody EmploymentEventApproveRequest request) {
+    public Result<Void> approve(@PathVariable("id") Long id, @RequestBody EmploymentEventApproveRequest request) {
         eventService.approve(id, request);
         return Result.success();
     }
@@ -69,7 +79,7 @@ public class EmploymentEventController {
      * 取消任职事件
      */
     @PostMapping("/{id}/cancel")
-    public Result<Void> cancel(@PathVariable Long id) {
+    public Result<Void> cancel(@PathVariable("id") Long id) {
         eventService.cancel(id);
         return Result.success();
     }
@@ -78,8 +88,40 @@ public class EmploymentEventController {
      * 删除任职事件（仅草稿状态可删除）
      */
     @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id) {
+    public Result<Void> delete(@PathVariable("id") Long id) {
         eventService.delete(id);
         return Result.success();
+    }
+
+    /**
+     * 批量导入任职事件
+     */
+    @PostMapping("/import")
+    public Result<Void> importEvents(@RequestParam("file") MultipartFile file) {
+        eventService.importEvents(file);
+        return Result.success();
+    }
+
+    /**
+     * 下载导入模版
+     */
+    @GetMapping("/import/template")
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("任职事件导入模版", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+        
+        EasyExcel.write(response.getOutputStream(), EmploymentEventImportDTO.class)
+                .sheet("模版")
+                .doWrite(Collections.emptyList());
+    }
+
+    /**
+     * 获取任职事件统计数据
+     */
+    @GetMapping("/statistics")
+    public Result<EmploymentEventStatisticsDTO> getStatistics() {
+        return Result.success(eventService.getStatistics());
     }
 }

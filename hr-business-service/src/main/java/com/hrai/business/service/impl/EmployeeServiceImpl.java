@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -76,7 +77,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         Map<Long, Employee> managerMap = loadManagerMap(result.getRecords());
 
         List<EmployeeDetailResponse> records = result.getRecords().stream()
-                .map(emp -> toDetail(emp, positionMap.get(emp.getPositionId()), managerMap.get(emp.getDirectManagerId())))
+                .map(emp -> toDetail(
+                        emp,
+                        positionMap.get(emp.getPositionId()),
+                        emp.getDirectManagerId() == null ? null : managerMap.get(emp.getDirectManagerId())))
                 .collect(Collectors.toList());
 
         return PageResponse.of(records, result.getTotal(), query.getPageNo(), query.getPageSize());
@@ -234,7 +238,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .collect(Collectors.toList());
 
         if (managerIds.isEmpty()) {
-            return Map.of();
+            return Collections.emptyMap();
         }
 
         LambdaQueryWrapper<Employee> wrapper = new LambdaQueryWrapper<>();

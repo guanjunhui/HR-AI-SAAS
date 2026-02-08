@@ -1,14 +1,19 @@
 package com.hrai.business.service.impl;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.read.listener.PageReadListener;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hrai.business.dto.PageResponse;
 import com.hrai.business.dto.employmentevent.EmploymentEventApproveRequest;
 import com.hrai.business.dto.employmentevent.EmploymentEventCreateRequest;
 import com.hrai.business.dto.employmentevent.EmploymentEventDetailResponse;
+import com.hrai.business.dto.employmentevent.EmploymentEventImportDTO;
 import com.hrai.business.dto.employmentevent.EmploymentEventQueryRequest;
+import com.hrai.business.dto.employmentevent.EmploymentEventStatisticsDTO;
 import com.hrai.business.entity.Employee;
 import com.hrai.business.entity.EmploymentEvent;
 import com.hrai.business.entity.Position;
@@ -23,9 +28,12 @@ import com.hrai.business.statemachine.EmploymentEventStateMachine;
 import com.hrai.common.constant.TenantConstants;
 import com.hrai.common.context.TenantContext;
 import com.hrai.common.exception.BizException;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -217,6 +225,70 @@ public class EmploymentEventServiceImpl implements EmploymentEventService {
         LambdaQueryWrapper<EmploymentEvent> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(EmploymentEvent::getId, id).eq(EmploymentEvent::getTenantId, tenantId);
         eventMapper.delete(wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void importEvents(MultipartFile file) {
+        String tenantId = resolveTenantId();
+        try {
+            EasyExcel.read(file.getInputStream(), EmploymentEventImportDTO.class, new PageReadListener<EmploymentEventImportDTO>(dataList -> {
+                for (EmploymentEventImportDTO dto : dataList) {
+                    EmploymentEvent event = new EmploymentEvent();
+                    BeanUtils.copyProperties(dto, event);
+                    
+                    event.setTenantId(tenantId);
+                    event.setStatus(EmploymentEventStatus.DRAFT.getCode());
+                    
+                    if (dto.getEventDate() != null) {
+                        try {
+                            event.setEventDate(LocalDate.parse(dto.getEventDate()));
+                        } catch (Exception e) {
+                            // ignore
+                        }
+                    }
+                    
+                    String userIdStr = TenantContext.getUserId();
+                    if (userIdStr != null && !userIdStr.isBlank()) {
+                        event.setApplicantId(Long.valueOf(userIdStr));
+                    }
+                    
+                    eventMapper.insert(event);
+                }
+            })).sheet().doRead();
+        } catch (IOException e) {
+            throw new BizException("读取Excel文件失败");
+        }
+    }
+
+    @Override
+    public EmploymentEventStatisticsDTO getStatistics() {
+        String tenantId = resolveTenantId();
+        EmploymentEventStatisticsDTO dto = new EmploymentEventStatisticsDTO();
+        
+        QueryWrapper<EmploymentEvent> typeWrapper = new QueryWrapper<>();
+        typeWrapper.select("event_type as `key`", "count(*) as `count`")
+                   .eq("tenant_id", tenantId)
+                   .groupBy("event_type");
+        List<Map<String, Object>> typeStats = eventMapper.selectMaps(typeWrapper);
+        
+        dto.setByType(typeStats.stream().map(m -> new EmploymentEventStatisticsDTO.StatItem(
+                (String) m.get("key"), 
+                ((Number) m.get("count")).longValue()
+        )).collect(Collectors.toList()));
+
+        QueryWrapper<EmploymentEvent> statusWrapper = new QueryWrapper<>();
+        statusWrapper.select("status as `key`", "count(*) as `count`")
+                     .eq("tenant_id", tenantId)
+                     .groupBy("status");
+        List<Map<String, Object>> statusStats = eventMapper.selectMaps(statusWrapper);
+        
+        dto.setByStatus(statusStats.stream().map(m -> new EmploymentEventStatisticsDTO.StatItem(
+                (String) m.get("key"), 
+                ((Number) m.get("count")).longValue()
+        )).collect(Collectors.toList()));
+        
+        return dto;
     }
 
     /**

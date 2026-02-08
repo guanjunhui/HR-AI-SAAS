@@ -57,25 +57,33 @@ class PermissionServiceImplTest {
 
     @Test
     void checkPermission_matchesWildcard() {
-        SysUser user = new SysUser();
-        user.setId(1L);
-        user.setTenantId("tenant_test");
-        user.setRoleId(10L);
-        user.setStatus(1);
-        user.setDeleted(0);
-
-        SysRole role = new SysRole();
-        role.setId(10L);
-        role.setTenantId("tenant_test");
-        role.setStatus(1);
-        role.setDeleted(0);
-
-        when(userMapper.selectById(eq(1L))).thenReturn(user);
-        when(roleMapper.selectById(eq(10L))).thenReturn(role);
+        mockActiveUserWithRole();
         when(rolePermissionMapper.selectCodesByRoleId(eq("tenant_test"), eq(10L)))
                 .thenReturn(List.of("hr:*"));
 
         boolean allowed = permissionService.checkPermission(1L, "hr:employee:read");
+
+        assertTrue(allowed);
+    }
+
+    @Test
+    void checkPermission_matchesUserAliasWildcard() {
+        mockActiveUserWithRole();
+        when(rolePermissionMapper.selectCodesByRoleId(eq("tenant_test"), eq(10L)))
+                .thenReturn(List.of("user:*"));
+
+        boolean allowed = permissionService.checkPermission(1L, "org:user:read");
+
+        assertTrue(allowed);
+    }
+
+    @Test
+    void checkPermission_matchesRoleAliasExact() {
+        mockActiveUserWithRole();
+        when(rolePermissionMapper.selectCodesByRoleId(eq("tenant_test"), eq(10L)))
+                .thenReturn(List.of("org:role:read"));
+
+        boolean allowed = permissionService.checkPermission(1L, "role:read");
 
         assertTrue(allowed);
     }
@@ -93,5 +101,23 @@ class PermissionServiceImplTest {
 
         assertTrue(permissions.contains("custom:read"));
         assertTrue(permissions.contains("org:unit:read"));
+    }
+
+    private void mockActiveUserWithRole() {
+        SysUser user = new SysUser();
+        user.setId(1L);
+        user.setTenantId("tenant_test");
+        user.setRoleId(10L);
+        user.setStatus(1);
+        user.setDeleted(0);
+
+        SysRole role = new SysRole();
+        role.setId(10L);
+        role.setTenantId("tenant_test");
+        role.setStatus(1);
+        role.setDeleted(0);
+
+        when(userMapper.selectById(eq(1L))).thenReturn(user);
+        when(roleMapper.selectById(eq(10L))).thenReturn(role);
     }
 }

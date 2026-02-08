@@ -26,6 +26,11 @@ import java.util.Set;
 @Service
 public class PermissionServiceImpl implements PermissionService {
 
+    private static final String ORG_USER_PREFIX = "org:user:";
+    private static final String USER_PREFIX = "user:";
+    private static final String ORG_ROLE_PREFIX = "org:role:";
+    private static final String ROLE_PREFIX = "role:";
+
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
     private final SysMenuMapper menuMapper;
@@ -104,17 +109,54 @@ public class PermissionServiceImpl implements PermissionService {
             return false;
         }
         String grantedTrim = granted.trim();
-        if (grantedTrim.isEmpty()) {
+        String requiredTrim = required.trim();
+        if (grantedTrim.isEmpty() || requiredTrim.isEmpty()) {
             return false;
         }
-        if ("*".equals(grantedTrim)) {
+
+        List<String> grantedCandidates = expandAliasCandidates(grantedTrim);
+        List<String> requiredCandidates = expandAliasCandidates(requiredTrim);
+
+        for (String grantedCandidate : grantedCandidates) {
+            for (String requiredCandidate : requiredCandidates) {
+                if (matchSingleRule(grantedCandidate, requiredCandidate)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean matchSingleRule(String granted, String required) {
+        if ("*".equals(granted)) {
             return true;
         }
-        if (grantedTrim.endsWith("*")) {
-            String prefix = grantedTrim.substring(0, grantedTrim.length() - 1);
+        if (granted.endsWith("*")) {
+            String prefix = granted.substring(0, granted.length() - 1);
             return required.startsWith(prefix);
         }
-        return grantedTrim.equals(required);
+        return granted.equals(required);
+    }
+
+    private List<String> expandAliasCandidates(String permission) {
+        Set<String> candidates = new LinkedHashSet<>();
+        candidates.add(permission);
+
+        addAliasCandidate(candidates, permission, ORG_USER_PREFIX, USER_PREFIX);
+        addAliasCandidate(candidates, permission, USER_PREFIX, ORG_USER_PREFIX);
+        addAliasCandidate(candidates, permission, ORG_ROLE_PREFIX, ROLE_PREFIX);
+        addAliasCandidate(candidates, permission, ROLE_PREFIX, ORG_ROLE_PREFIX);
+
+        return new ArrayList<>(candidates);
+    }
+
+    private void addAliasCandidate(Set<String> candidates,
+                                   String permission,
+                                   String sourcePrefix,
+                                   String targetPrefix) {
+        if (permission.startsWith(sourcePrefix)) {
+            candidates.add(targetPrefix + permission.substring(sourcePrefix.length()));
+        }
     }
 
     private String resolveTenantId() {

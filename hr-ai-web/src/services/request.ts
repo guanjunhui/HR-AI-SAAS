@@ -1,139 +1,257 @@
-import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { message } from 'antd';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useNotificationStore } from '@/stores/useNotificationStore';
+import type { ApiErrorModel, ApiResult, RequestMeta } from '@/types/hr-business-service';
 
-// 创建 axios 实例
+interface RequestConfig extends InternalAxiosRequestConfig {
+  meta?: RequestMeta;
+  __retryCount?: number;
+  __retryAuth?: boolean;
+}
+
+const DEFAULT_TIMEOUT = 15000;
+const AI_TIMEOUT = 30000;
+const DEFAULT_RETRY = 1;
+
+class AppServiceError extends Error {
+  apiError: ApiErrorModel;
+
+  constructor(apiError: ApiErrorModel) {
+    super(apiError.message);
+    this.apiError = apiError;
+  }
+}
+
 const request: AxiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-    timeout: 30000,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  timeout: DEFAULT_TIMEOUT,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// ---------- Token 静默刷新相关 ----------
 let isRefreshing = false;
-let pendingRequests: Array<(token: string) => void> = [];
-
-function onTokenRefreshed(newToken: string) {
-    pendingRequests.forEach((cb) => cb(newToken));
-    pendingRequests = [];
+interface PendingRequest {
+  config: RequestConfig;
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
 }
 
-function addPendingRequest(cb: (token: string) => void) {
-    pendingRequests.push(cb);
+let pendingRequests: PendingRequest[] = [];
+
+function resolvePendingRequests(newToken: string): void {
+  pendingRequests.forEach(({ config, resolve }) => {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${newToken}`;
+    resolve(request(config));
+  });
+  pendingRequests = [];
 }
 
-// 请求拦截器
-request.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const { token } = useAuthStore.getState();
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error: AxiosError) => {
-        return Promise.reject(error);
+function rejectPendingRequests(reason: unknown): void {
+  pendingRequests.forEach(({ reject }) => reject(reason));
+  pendingRequests = [];
+}
+
+function addPendingRequest(requestItem: PendingRequest): void {
+  pendingRequests.push(requestItem);
+}
+
+function buildIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function shouldRetry(error: AxiosError, config: RequestConfig): boolean {
+  const method = (config.method || 'get').toLowerCase();
+  const retry = config.meta?.retry ?? DEFAULT_RETRY;
+  const current = config.__retryCount ?? 0;
+  if (current >= retry) {
+    return false;
+  }
+
+  if (method !== 'get') {
+    // 非幂等写请求禁止自动重试，避免副作用重复执行
+    if (!config.meta?.idempotent || retry <= 0) {
+      return false;
     }
+  }
+
+  if (!error.response) {
+    return true;
+  }
+
+  const status = error.response.status;
+  return status === 429 || status >= 500;
+}
+
+function toApiError(error: AxiosError): ApiErrorModel {
+  const status = error.response?.status;
+  const responseData = error.response?.data as Partial<ApiResult<unknown>> | undefined;
+
+  if (responseData && typeof responseData.code === 'number') {
+    return {
+      code: responseData.code,
+      message: responseData.message || '请求失败',
+      requestId: responseData.requestId,
+      timestamp: responseData.timestamp,
+      status,
+    };
+  }
+
+  return {
+    code: status || 500,
+    message: error.message || '网络异常',
+    status,
+  };
+}
+
+function notifyApiError(apiError: ApiErrorModel): void {
+  useNotificationStore.getState().pushNotice({
+    type: 'error',
+    title: `请求失败 (${apiError.code})`,
+    description: apiError.message,
+  });
+}
+
+request.interceptors.request.use(
+  (config: RequestConfig) => {
+    const { token, user } = useAuthStore.getState();
+
+    if (!config.meta?.skipAuth && token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (!config.headers['X-Tenant-Id'] && user?.tenantId) {
+      config.headers['X-Tenant-Id'] = user.tenantId;
+    }
+
+    const method = (config.method || 'get').toLowerCase();
+    const isWriteMethod = ['post', 'put', 'patch', 'delete'].includes(method);
+    if ((config.meta?.idempotent ?? isWriteMethod) && !config.headers['X-Idempotency-Key']) {
+      config.headers['X-Idempotency-Key'] = buildIdempotencyKey();
+    }
+
+    if (typeof config.meta?.timeout === 'number') {
+      config.timeout = config.meta.timeout;
+    } else if (typeof config.url === 'string' && config.url.includes('/ai/')) {
+      config.timeout = AI_TIMEOUT;
+    }
+
+    return config;
+  },
+  (error: AxiosError) => Promise.reject(error),
 );
 
-// 响应拦截器
 request.interceptors.response.use(
-    (response) => {
-        const { code, message: msg, data } = response.data;
+  (response: AxiosResponse) => {
+    const payload = response.data as Partial<ApiResult<unknown>>;
 
-        // Result<T> 包装格式
-        if (code !== undefined) {
-            if (code === 200) {
-                return data;
-            } else {
-                message.error(msg || '请求失败');
-                return Promise.reject(new Error(msg || '请求失败'));
-            }
-        }
+    if (typeof payload?.code === 'number') {
+      if (payload.code === 200) {
+        return payload.data;
+      }
 
-        return response.data;
-    },
-    async (error: AxiosError) => {
-        const { response, config } = error;
-
-        if (response && response.status === 401 && config) {
-            const { refreshToken, logout } = useAuthStore.getState();
-
-            // 没有 refreshToken，直接登出
-            if (!refreshToken) {
-                logout();
-                window.location.href = '/login';
-                return Promise.reject(error);
-            }
-
-            // 如果正在刷新，将请求加入等待队列
-            if (isRefreshing) {
-                return new Promise((resolve) => {
-                    addPendingRequest((newToken: string) => {
-                        if (config.headers) {
-                            config.headers.Authorization = `Bearer ${newToken}`;
-                        }
-                        resolve(request(config));
-                    });
-                });
-            }
-
-            isRefreshing = true;
-
-            try {
-                // 用原生 axios 发刷新请求，绕过拦截器避免死循环
-                const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
-                const res = await axios.post(`${baseURL}/v1/auth/refresh`, {
-                    refreshToken,
-                });
-
-                const result = res.data;
-                if (result.code === 200 && result.data) {
-                    const { accessToken, refreshToken: newRefreshToken, expiresIn } = result.data;
-                    useAuthStore.getState().setTokens(accessToken, newRefreshToken, expiresIn);
-
-                    // 通知等待队列
-                    onTokenRefreshed(accessToken);
-
-                    // 重试原始请求
-                    if (config.headers) {
-                        config.headers.Authorization = `Bearer ${accessToken}`;
-                    }
-                    return request(config);
-                } else {
-                    // 刷新失败，登出
-                    logout();
-                    window.location.href = '/login';
-                    return Promise.reject(error);
-                }
-            } catch {
-                // 刷新请求本身失败，登出
-                useAuthStore.getState().logout();
-                window.location.href = '/login';
-                return Promise.reject(error);
-            } finally {
-                isRefreshing = false;
-            }
-        }
-
-        // 非 401 错误处理
-        if (response) {
-            const { status } = response;
-            if (status === 403) {
-                message.error('没有权限');
-            } else if (status === 500) {
-                message.error('服务器错误');
-            } else {
-                message.error(`请求失败: ${status}`);
-            }
-        } else {
-            message.error(error.message || '网络异常');
-        }
-
-        return Promise.reject(error);
+      const apiError: ApiErrorModel = {
+        code: payload.code,
+        message: payload.message || '请求失败',
+        requestId: payload.requestId,
+        timestamp: payload.timestamp,
+        status: response.status,
+      };
+      notifyApiError(apiError);
+      return Promise.reject(new AppServiceError(apiError));
     }
+
+    return response.data;
+  },
+  async (error: AxiosError) => {
+    const config = (error.config || {}) as RequestConfig;
+    const response = error.response;
+
+    if (response && response.status === 401 && config) {
+      const { refreshToken, logout, setTokens } = useAuthStore.getState();
+
+      if (config.__retryAuth) {
+        logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+      config.__retryAuth = true;
+
+      if (!refreshToken) {
+        logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          addPendingRequest({
+            config,
+            resolve,
+            reject,
+          });
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+        const refreshResp = await axios.post(`${baseURL}/v1/auth/refresh`, { refreshToken });
+        const refreshResult = refreshResp.data as ApiResult<{ accessToken: string; refreshToken: string; expiresIn: number }>;
+
+        if (refreshResult.code === 200 && refreshResult.data) {
+          const { accessToken, refreshToken: nextRefreshToken, expiresIn } = refreshResult.data;
+          setTokens(accessToken, nextRefreshToken, expiresIn);
+          resolvePendingRequests(accessToken);
+          config.headers.Authorization = `Bearer ${accessToken}`;
+          return request(config);
+        }
+
+        rejectPendingRequests(error);
+        logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      } catch (refreshError) {
+        rejectPendingRequests(refreshError);
+        logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    if (shouldRetry(error, config)) {
+      const current = config.__retryCount ?? 0;
+      const delayMs = config.meta?.retryDelayMs ?? 300;
+      config.__retryCount = current + 1;
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, delayMs * (current + 1));
+      });
+      return request(config);
+    }
+
+    const apiError = toApiError(error);
+
+    if (apiError.status === 403) {
+      message.error('没有权限访问该资源');
+    } else if (apiError.status === 500) {
+      message.error('服务器错误，请稍后重试');
+    } else if (!apiError.status) {
+      message.error('网络异常，请检查连接');
+    }
+
+    notifyApiError(apiError);
+
+    return Promise.reject(new AppServiceError(apiError));
+  },
 );
 
 export default request;
+export { AppServiceError };

@@ -9,6 +9,7 @@ public enum EmploymentEventType {
     TRANSFER("transfer", "调岗"),
     PROMOTION("promotion", "晋升"),
     DEMOTION("demotion", "降级"),
+    SALARY_CHANGE("salary_change", "调薪"),
     RESIGNATION("resignation", "离职");
 
     private final String code;
